@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import gym
 from gym import error, spaces, utils
 
@@ -7,6 +9,7 @@ import traci.constants as tc
 import os, sys
 import numpy as np
 
+from settings import PROJECT_ROOT
 
 VEHICLE_LENGTH = 5
 NET_WIDTH = 200
@@ -27,7 +30,7 @@ else:
 class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, config_file="environment/2lane.sumocfg", render=False):
+    def __init__(self, config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"), render=False):
         super().__init__()
 
         sumo_binary = ""
@@ -89,8 +92,7 @@ class SumoEnv(gym.Env):
         return state
 
     def _take_action(self, action):
-        action_tuple = self.actions[np.argmax(action)]
-
+        action_tuple = self.actions[action]
         not_viable_action_penalty = 0
 
         step = 0
@@ -109,8 +111,8 @@ class SumoEnv(gym.Env):
                     self.phases_durations[phase_id] += action_tuple[1]
 
                     if (
-                        self.phases_durations[phase_id] < 0
-                        or self.phases_durations[phase_id] > 60
+                            self.phases_durations[phase_id] < 0
+                            or self.phases_durations[phase_id] > 60
                     ):
                         not_viable_action_penalty = -1000
 
