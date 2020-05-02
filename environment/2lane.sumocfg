@@ -1,4 +1,9 @@
 <configuration>
+    <gui_only>
+        <start value="true"/>
+        <quit-on-end value="true"/>
+    </gui_only>
+
     <input>
         <net-file value="2lane.net.xml" />
         <route-files value="2lane.rou.xml" />
