@@ -46,7 +46,7 @@ class SumoEnv(gym.Env):
         self.tls_id = traci.trafficlight.getIDList()[0]
 
         self.observation_space = spaces.Space(
-            shape=(DIM_W, DIM_H, 2)
+            shape=(2, DIM_H, DIM_W)
         )  # Shape or something else?
 
         self.actions = [(i * 2, 5) for i in range(TRAFFICLIGHTS_PHASES)]
@@ -71,7 +71,7 @@ class SumoEnv(gym.Env):
             return state, reward, False
 
     def _snap_state(self):
-        state = np.zeros((DIM_W, DIM_H, 2))
+        state = np.zeros((2, DIM_H, DIM_W))
 
         for vehicle in traci.vehicle.getIDList():
             traci.vehicle.subscribe(vehicle, (tc.VAR_POSITION, tc.VAR_SPEED))
@@ -84,10 +84,7 @@ class SumoEnv(gym.Env):
                 int(vehicle_position[0] / VEHICLE_LENGTH),
                 int(vehicle_position[1] / 5),
             )
-
-            state[vehicle_discrete_position] = [1, int(round(vehicle_speed))]
-
-        # state = np.reshape(state, [-1, DIM_W * DIM_H, 2])
+            state[:, vehicle_discrete_position] = [1, int(round(vehicle_speed))]
 
         return state
 
@@ -161,7 +158,7 @@ class SumoEnv(gym.Env):
     def render(self, mode="human"):
         pass
 
-    def save_simulation(self, path="sim_res.sbx"): # for future usage
+    def save_simulation(self, path="sim_res.sbx"):  # for future usage
         traci.simulation.saveState(path)
 
     def close(self):

@@ -1,15 +1,16 @@
 import os
 
+import torch
+
 from environment.env import SumoEnv
+from memory import Memory
+from neural_net import DQN
+
+memory = Memory(10000)
+
+net = DQN()
 
 with SumoEnv(render=False) as env:
-    env.reset()
-    print(env.observation_space.shape)
-    print(env.observation_space.shape)
-    for i in range(5):
-        a = env.action_space.sample()
-
-        s, r, d = env.step(a)
-
-
-        print(a, r)
+    state = env.reset()
+    state = torch.tensor([state], dtype=torch.float32)
+    print(net(state))
