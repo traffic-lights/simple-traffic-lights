@@ -46,11 +46,11 @@ class SumoEnv(gym.Env):
             shape=(DIM_W, DIM_H, 2)
         )  # Shape or something else?
 
-        self.action_space = spaces.Discrete(TRAFFICLIGHTS_PHASES * 2 + 1)
-
         self.actions = [(i * 2, 5) for i in range(TRAFFICLIGHTS_PHASES)]
         self.actions = self.actions + [(i * 2, -5) for i in range(TRAFFICLIGHTS_PHASES)]
         self.actions = self.actions + [(-1, None)]
+
+        self.action_space = spaces.Discrete(len(self.actions))
 
         self.phases_durations = [20.0, 20.0, 20.0, 20.0]
 
@@ -89,8 +89,7 @@ class SumoEnv(gym.Env):
         return state
 
     def _take_action(self, action):
-        action_tuple = self.actions[np.argmax(action)]
-
+        action_tuple = self.actions[action]
         not_viable_action_penalty = 0
 
         step = 0
@@ -158,6 +157,9 @@ class SumoEnv(gym.Env):
 
     def render(self, mode="human"):
         pass
+
+    def save_simulation(self, path="sim_res.sbx"): # for future usage
+        traci.simulation.saveState(path)
 
     def close(self):
         traci.close()
