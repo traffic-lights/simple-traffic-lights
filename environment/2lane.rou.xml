@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Fri 01 May 2020 06:17:11 PM CEST by Eclipse SUMO netedit Version 1.6.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <output>
+        <output-file value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.net.xml"/>
+    </output>
+
+    <processing>
+        <offset.disable-normalization value="true"/>
+    </processing>
+
+    <junctions>
+        <no-turnarounds value="true"/>
+    </junctions>
+
+    <netedit>
+        <route-files value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.rou.xml"/>
+        <data-files value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.rou.xml"/>
+    </netedit>
+
+    <report>
+        <aggregate-warnings value="5"/>
+    </report>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <route edges="e0 e5" color="yellow" id="route_0"/>
+    <route edges="e0 e7" color="yellow" id="route_1"/>
+    <route edges="e6 e5" color="yellow" id="route_10"/>
+    <route edges="e6 e3" color="yellow" id="route_11"/>
+    <route edges="e0 e3" color="yellow" id="route_2"/>
+    <route edges="e4 e1" color="yellow" id="route_3"/>
+    <route edges="e4 e7" color="yellow" id="route_4"/>
+    <route edges="e4 e3" color="yellow" id="route_5"/>
+    <route edges="e2 e1" color="yellow" id="route_6"/>
+    <route edges="e2 e7" color="yellow" id="route_7"/>
+    <route edges="e2 e5" color="yellow" id="route_8"/>
+    <route edges="e6 e1" color="yellow" id="route_9"/>
+    <flow id="flow_0" begin="0.00" from="e2" to="e1" end="3600.00" number="1800"/>
+    <flow id="flow_1" begin="0.00" from="e2" to="e7" end="3600.00" number="1800"/>
+    <flow id="flow_10" begin="0.00" from="e4" to="e1" end="3600.00" number="1800"/>
+    <flow id="flow_11" begin="0.00" from="e4" to="e7" end="3600.00" number="1800"/>
+    <flow id="flow_2" begin="0.00" from="e2" to="e5" end="3600.00" number="1800"/>
+    <flow id="flow_3" begin="0.00" from="e0" to="e3" end="3600.00" number="1800"/>
+    <flow id="flow_4" begin="0.00" from="e0" to="e5" end="3600.00" number="1800"/>
+    <flow id="flow_5" begin="0.00" from="e0" to="e7" end="3600.00" number="1800"/>
+    <flow id="flow_6" begin="0.00" from="e6" to="e1" end="3600.00" number="1800"/>
+    <flow id="flow_7" begin="0.00" from="e6" to="e3" end="3600.00" number="1800"/>
+    <flow id="flow_8" begin="0.00" from="e6" to="e5" end="3600.00" number="1800"/>
+    <flow id="flow_9" begin="0.00" from="e4" to="e3" end="3600.00" number="1800"/>
+</routes>

@@ -1,0 +1,6 @@
+<configuration>
+    <input>
+        <net-file value="2lane.net.xml" />
+        <route-files value="2lane.rou.xml" />
+    </input>
+</configuration>
