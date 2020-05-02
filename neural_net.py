@@ -6,7 +6,7 @@ class DQN(nn.Module):
 
     def __init__(self, outputs=9):
         super(DQN, self).__init__()
-
+        
         self.conv1 = nn.Sequential(
             nn.Conv2d(2, 32, 4, 2, 1),
             nn.MaxPool2d(3, 1, 1),
@@ -34,9 +34,9 @@ class DQN(nn.Module):
         )
 
         self.advantage_net = nn.Sequential(
-            nn.Linear(128, 64),
-            nn.LeakyReLU(),
-            nn.Linear(64, outputs)
+             nn.Linear(128, 64),
+             nn.LeakyReLU(),
+             nn.Linear(64, 9)
         )
 
     def forward(self, x):
