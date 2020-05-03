@@ -84,7 +84,8 @@ class SumoEnv(gym.Env):
                 int(vehicle_position[0] / VEHICLE_LENGTH),
                 int(vehicle_position[1] / 5),
             )
-            state[:, vehicle_discrete_position] = [1, int(round(vehicle_speed))]
+            state[0, vehicle_discrete_position] = 1
+            state[1, vehicle_discrete_position] = int(round(vehicle_speed))
 
         return state
 
