@@ -38,14 +38,15 @@ class Memory:
     def __getitem__(self, idx):
         return self.buffer[idx]
 
-    def batch_sampler(self, batch_size):
-        return MemBatchSampler(self.buffer, batch_size)
+    def batch_sampler(self, batch_size, device=torch.device('cpu')):
+        return MemBatchSampler(self.buffer, batch_size, device)
 
 
 class MemBatchSampler:
-    def __init__(self, dequeue, batch_size):
+    def __init__(self, dequeue, batch_size, device):
         self.dequeue = dequeue
         self.batch_size = batch_size
+        self.device = device
 
         self.i_batch = 0
         self.num_batches = 0
@@ -65,6 +66,6 @@ class MemBatchSampler:
             my_batch = np.array(random.sample(self.dequeue, self.batch_size))
             for i, (name, d_type) in enumerate(zip(self.order, self.d_types)):
                 my_vals = np.stack(my_batch[:, i])
-                output_dict[name] = torch.tensor(my_vals, dtype=d_type)
+                output_dict[name] = torch.tensor(my_vals, dtype=d_type, device=self.device)
             return output_dict
         raise StopIteration
