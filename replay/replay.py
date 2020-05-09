@@ -7,12 +7,12 @@ from os.path import isfile, join
 from environment.dump import load_dumped
 
 
-pygame.init()
-
 FPS = 8
 
 
 def run(path):
+    pygame.init()
+
     display = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Replayer")
 

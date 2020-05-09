@@ -106,9 +106,6 @@ class SumoEnv(gym.Env):
                 round(vehicle_position[0] / VEHICLE_LENGTH),
                 round(vehicle_position[1] / VEHICLE_LENGTH),
             )
-            # print(f'{vehicle_position[0] / VEHICLE_LENGTH}, {vehicle_position[1] / VEHICLE_LENGTH}')
-            # if state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]]:
-                # print("Overiding!")
 
             state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]] = 1
             state[1, vehicle_discrete_position[0], vehicle_discrete_position[1]] = int(
@@ -222,8 +219,7 @@ class SumoEnv(gym.Env):
         if self.save_replay:
             # self._generate_gif()
             src_path = self.temp_folder.name
-            res_path = self.replay_folder
-
+    
             onlyfiles = [f for f in listdir(src_path) if isfile(join(src_path, f))]
             filenames = [f for f in onlyfiles if ".resum" in f]
 
