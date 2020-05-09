@@ -16,6 +16,11 @@ import datetime
 
 from settings import PROJECT_ROOT
 
+from environment.dump import dump_to_file
+
+from replay.replay import run
+
+
 VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
@@ -79,16 +84,16 @@ class SumoEnv(gym.Env):
     def step(self, action):
         reward = None
 
-        reward = self._take_action(action)
+        reward, info = self._take_action(action)
         state = self._snap_state()
 
         if traci.simulation.getMinExpectedNumber() == 0:
-            return state, reward, True
+            return state, reward, True, info
         else:
-            return state, reward, False
+            return state, reward, False, info
 
     def _snap_state(self):
-        state = np.zeros((2, DIM_H, DIM_W))
+        state = np.zeros((2, DIM_H + 1, DIM_W + 1))
 
         for vehicle in traci.vehicle.getIDList():
             traci.vehicle.subscribe(vehicle, (tc.VAR_POSITION, tc.VAR_SPEED))
@@ -98,11 +103,17 @@ class SumoEnv(gym.Env):
             vehicle_speed = subscription_results[tc.VAR_SPEED]
 
             vehicle_discrete_position = (
-                int(vehicle_position[0] / VEHICLE_LENGTH),
-                int(vehicle_position[1] / 5),
+                round(vehicle_position[0] / VEHICLE_LENGTH),
+                round(vehicle_position[1] / VEHICLE_LENGTH),
             )
-            state[0, vehicle_discrete_position] = 1
-            state[1, vehicle_discrete_position] = int(round(vehicle_speed))
+            # print(f'{vehicle_position[0] / VEHICLE_LENGTH}, {vehicle_position[1] / VEHICLE_LENGTH}')
+            # if state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]]:
+                # print("Overiding!")
+
+            state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]] = 1
+            state[1, vehicle_discrete_position[0], vehicle_discrete_position[1]] = int(
+                round(vehicle_speed)
+            )
 
         return state
 
@@ -159,10 +170,14 @@ class SumoEnv(gym.Env):
                     wait_time_map[vehicle] = vehicle_wait_time
 
                 if self.save_replay:
+                    # time = traci.simulation.getTime()
+                    # traci.gui.screenshot(
+                    # "View #0", self.temp_folder.name + f"/state_{time}.png"
+                    # )
                     time = traci.simulation.getTime()
-                    traci.gui.screenshot(
-                        "View #0", self.temp_folder.name + f"/state_{time}.png"
-                    )
+                    path = self.temp_folder.name + f"/state_{time}.resum"
+
+                    dump_to_file((current_phase, self._snap_state()), path)
 
         wait_time_sum = 0
         for entry in wait_time_map:
@@ -172,7 +187,7 @@ class SumoEnv(gym.Env):
 
         self.last_wait_time = wait_time_sum
 
-        return reward + not_viable_action_penalty
+        return reward + not_viable_action_penalty, wait_time_sum
 
     def reset(self):
         traci.close()
@@ -205,6 +220,16 @@ class SumoEnv(gym.Env):
         traci.close()
 
         if self.save_replay:
-            self._generate_gif()
+            # self._generate_gif()
+            src_path = self.temp_folder.name
+            res_path = self.replay_folder
+
+            onlyfiles = [f for f in listdir(src_path) if isfile(join(src_path, f))]
+            filenames = [f for f in onlyfiles if ".resum" in f]
+
+            for f_name in filenames:
+                print(f_name)
+
+            run(src_path)
 
             self.temp_folder.cleanup()
