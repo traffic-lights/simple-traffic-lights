@@ -16,10 +16,6 @@ import datetime
 
 from settings import PROJECT_ROOT
 
-from environment.dump import dump_to_file
-
-from replay.replay import run
-
 
 VEHICLE_LENGTH = 5
 NET_WIDTH = 200
@@ -30,7 +26,7 @@ DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
 TRAFFICLIGHTS_PHASES = 4
 
-REPLAY_FPS = 30
+REPLAY_FPS = 8
 
 if "SUMO_HOME" in os.environ:
     tools = os.path.join(os.environ["SUMO_HOME"], "tools")
@@ -65,7 +61,7 @@ class SumoEnv(gym.Env):
 
         self.observation_space = spaces.Space(
             shape=(2, DIM_H, DIM_W)
-        )  # Shape or something else?
+        )
 
         self.actions = [(i * 2, 5) for i in range(TRAFFICLIGHTS_PHASES)]
         self.actions = self.actions + [(i * 2, -5) for i in range(TRAFFICLIGHTS_PHASES)]
@@ -167,14 +163,10 @@ class SumoEnv(gym.Env):
                     wait_time_map[vehicle] = vehicle_wait_time
 
                 if self.save_replay:
-                    # time = traci.simulation.getTime()
-                    # traci.gui.screenshot(
-                    # "View #0", self.temp_folder.name + f"/state_{time}.png"
-                    # )
                     time = traci.simulation.getTime()
-                    path = self.temp_folder.name + f"/state_{time}.resum"
-
-                    dump_to_file((current_phase, self._snap_state()), path)
+                    traci.gui.screenshot(
+                        "View #0", self.temp_folder.name + f"/state_{time}.png"
+                    )
 
         wait_time_sum = 0
         for entry in wait_time_map:
@@ -195,9 +187,6 @@ class SumoEnv(gym.Env):
     def render(self, mode="human"):
         pass
 
-    def save_simulation(self, path="sim_res.sbx"):  # for future usage
-        traci.simulation.saveState(path)
-
     def _generate_gif(self):
         src_path = self.temp_folder.name
         res_path = self.replay_folder
@@ -217,15 +206,5 @@ class SumoEnv(gym.Env):
         traci.close()
 
         if self.save_replay:
-            # self._generate_gif()
-            src_path = self.temp_folder.name
-    
-            onlyfiles = [f for f in listdir(src_path) if isfile(join(src_path, f))]
-            filenames = [f for f in onlyfiles if ".resum" in f]
-
-            for f_name in filenames:
-                print(f_name)
-
-            run(src_path)
-
+            self._generate_gif()
             self.temp_folder.cleanup()
