@@ -21,6 +21,8 @@ VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
 
+PENALTY = 1000
+
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
@@ -59,9 +61,7 @@ class SumoEnv(gym.Env):
 
         self.tls_id = traci.trafficlight.getIDList()[0]
 
-        self.observation_space = spaces.Space(
-            shape=(2, DIM_H, DIM_W)
-        )
+        self.observation_space = spaces.Space(shape=(2, DIM_H, DIM_W))
 
         self.actions = [(i * 2, 5) for i in range(TRAFFICLIGHTS_PHASES)]
         self.actions = self.actions + [(i * 2, -5) for i in range(TRAFFICLIGHTS_PHASES)]
@@ -70,8 +70,6 @@ class SumoEnv(gym.Env):
         self.action_space = spaces.Discrete(len(self.actions))
 
         self.phases_durations = [20.0, 20.0, 20.0, 20.0]
-
-        self.last_wait_time = 0
 
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
@@ -115,7 +113,6 @@ class SumoEnv(gym.Env):
         not_viable_action_penalty = 0
 
         step = 0
-        wait_time_map = {}
 
         phases_tested_cnt = 0
         prev_phase = -1
@@ -137,7 +134,7 @@ class SumoEnv(gym.Env):
                         self.phases_durations[phase_id] < 0
                         or self.phases_durations[phase_id] > 60
                     ):
-                        not_viable_action_penalty = -1000
+                        not_viable_action_penalty = -PENALTY
 
                     self.phases_durations[phase_id] = max(
                         0.0, min(self.phases_durations[phase_id], 60.0)
@@ -152,31 +149,37 @@ class SumoEnv(gym.Env):
 
             step += 1
             if step % 10 == 0:
-                for vehicle in traci.vehicle.getIDList():
-                    traci.vehicle.subscribe(vehicle, (tc.VAR_ACCUMULATED_WAITING_TIME,))
-                    subscription_results = traci.vehicle.getSubscriptionResults(vehicle)
-
-                    vehicle_wait_time = subscription_results[
-                        tc.VAR_ACCUMULATED_WAITING_TIME
-                    ]
-
-                    wait_time_map[vehicle] = vehicle_wait_time
-
                 if self.save_replay:
                     time = traci.simulation.getTime()
                     traci.gui.screenshot(
                         "View #0", self.temp_folder.name + f"/state_{time}.png"
                     )
 
-        wait_time_sum = 0
-        for entry in wait_time_map:
-            wait_time_sum += wait_time_map[entry]
+        incomings = set()
+        outgoings = set()
 
-        reward = self.last_wait_time - wait_time_sum
+        for tls in traci.trafficlight.getIDList():
+            for entry in traci.trafficlight.getControlledLinks(tls):
+                if entry:
+                    entry_tuple = entry[0]
+                    if entry_tuple:
+                        incomings.add(entry_tuple[0])
+                        outgoings.add(entry_tuple[1])
 
-        self.last_wait_time = wait_time_sum
+        incomings_sum = 0
+        outgoings_sum = 0
 
-        return reward + not_viable_action_penalty, wait_time_sum
+        for incoming in incomings:
+            incomings_sum += traci.lane.getLastStepVehicleNumber(incoming)
+
+        for outgoing in outgoings:
+            outgoings_sum += traci.lane.getLastStepVehicleNumber(outgoing)
+
+        pressure = abs(incomings_sum - outgoings_sum)
+
+        # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
+
+        return -pressure + not_viable_action_penalty, pressure
 
     def reset(self):
         traci.close()
