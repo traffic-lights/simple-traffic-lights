@@ -16,21 +16,19 @@ import datetime
 
 from settings import PROJECT_ROOT
 
-from environment.dump import dump_to_file
-
-from replay.replay import run
-
 
 VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
+
+PENALTY = 1000
 
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
 TRAFFICLIGHTS_PHASES = 4
 
-REPLAY_FPS = 30
+REPLAY_FPS = 8
 
 if "SUMO_HOME" in os.environ:
     tools = os.path.join(os.environ["SUMO_HOME"], "tools")
@@ -63,9 +61,7 @@ class SumoEnv(gym.Env):
 
         self.tls_id = traci.trafficlight.getIDList()[0]
 
-        self.observation_space = spaces.Space(
-            shape=(2, DIM_H, DIM_W)
-        )  # Shape or something else?
+        self.observation_space = spaces.Space(shape=(2, DIM_H, DIM_W))
 
         self.actions = [(i * 2, 5) for i in range(TRAFFICLIGHTS_PHASES)]
         self.actions = self.actions + [(i * 2, -5) for i in range(TRAFFICLIGHTS_PHASES)]
@@ -74,8 +70,6 @@ class SumoEnv(gym.Env):
         self.action_space = spaces.Discrete(len(self.actions))
 
         self.phases_durations = [20.0, 20.0, 20.0, 20.0]
-
-        self.last_wait_time = 0
 
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
@@ -106,9 +100,6 @@ class SumoEnv(gym.Env):
                 round(vehicle_position[0] / VEHICLE_LENGTH),
                 round(vehicle_position[1] / VEHICLE_LENGTH),
             )
-            # print(f'{vehicle_position[0] / VEHICLE_LENGTH}, {vehicle_position[1] / VEHICLE_LENGTH}')
-            # if state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]]:
-                # print("Overiding!")
 
             state[0, vehicle_discrete_position[0], vehicle_discrete_position[1]] = 1
             state[1, vehicle_discrete_position[0], vehicle_discrete_position[1]] = int(
@@ -122,7 +113,6 @@ class SumoEnv(gym.Env):
         not_viable_action_penalty = 0
 
         step = 0
-        wait_time_map = {}
 
         phases_tested_cnt = 0
         prev_phase = -1
@@ -144,7 +134,7 @@ class SumoEnv(gym.Env):
                         self.phases_durations[phase_id] < 0
                         or self.phases_durations[phase_id] > 60
                     ):
-                        not_viable_action_penalty = -1000
+                        not_viable_action_penalty = -PENALTY
 
                     self.phases_durations[phase_id] = max(
                         0.0, min(self.phases_durations[phase_id], 60.0)
@@ -159,35 +149,37 @@ class SumoEnv(gym.Env):
 
             step += 1
             if step % 10 == 0:
-                for vehicle in traci.vehicle.getIDList():
-                    traci.vehicle.subscribe(vehicle, (tc.VAR_ACCUMULATED_WAITING_TIME,))
-                    subscription_results = traci.vehicle.getSubscriptionResults(vehicle)
-
-                    vehicle_wait_time = subscription_results[
-                        tc.VAR_ACCUMULATED_WAITING_TIME
-                    ]
-
-                    wait_time_map[vehicle] = vehicle_wait_time
-
                 if self.save_replay:
-                    # time = traci.simulation.getTime()
-                    # traci.gui.screenshot(
-                    # "View #0", self.temp_folder.name + f"/state_{time}.png"
-                    # )
                     time = traci.simulation.getTime()
-                    path = self.temp_folder.name + f"/state_{time}.resum"
+                    traci.gui.screenshot(
+                        "View #0", self.temp_folder.name + f"/state_{time}.png"
+                    )
 
-                    dump_to_file((current_phase, self._snap_state()), path)
+        incomings = set()
+        outgoings = set()
 
-        wait_time_sum = 0
-        for entry in wait_time_map:
-            wait_time_sum += wait_time_map[entry]
+        for tls in traci.trafficlight.getIDList():
+            for entry in traci.trafficlight.getControlledLinks(tls):
+                if entry:
+                    entry_tuple = entry[0]
+                    if entry_tuple:
+                        incomings.add(entry_tuple[0])
+                        outgoings.add(entry_tuple[1])
 
-        reward = self.last_wait_time - wait_time_sum
+        incomings_sum = 0
+        outgoings_sum = 0
 
-        self.last_wait_time = wait_time_sum
+        for incoming in incomings:
+            incomings_sum += traci.lane.getLastStepVehicleNumber(incoming)
 
-        return reward + not_viable_action_penalty, wait_time_sum
+        for outgoing in outgoings:
+            outgoings_sum += traci.lane.getLastStepVehicleNumber(outgoing)
+
+        pressure = abs(incomings_sum - outgoings_sum)
+
+        # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
+
+        return -pressure + not_viable_action_penalty, pressure
 
     def reset(self):
         traci.close()
@@ -197,9 +189,6 @@ class SumoEnv(gym.Env):
 
     def render(self, mode="human"):
         pass
-
-    def save_simulation(self, path="sim_res.sbx"):  # for future usage
-        traci.simulation.saveState(path)
 
     def _generate_gif(self):
         src_path = self.temp_folder.name
@@ -220,16 +209,5 @@ class SumoEnv(gym.Env):
         traci.close()
 
         if self.save_replay:
-            # self._generate_gif()
-            src_path = self.temp_folder.name
-            res_path = self.replay_folder
-
-            onlyfiles = [f for f in listdir(src_path) if isfile(join(src_path, f))]
-            filenames = [f for f in onlyfiles if ".resum" in f]
-
-            for f_name in filenames:
-                print(f_name)
-
-            run(src_path)
-
+            self._generate_gif()
             self.temp_folder.cleanup()
