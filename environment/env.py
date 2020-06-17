@@ -78,8 +78,11 @@ class SumoEnv(gym.Env):
     def step(self, action):
         reward = None
 
-        reward, info = self._take_action(action)
+        reward, info, penalted = self._take_action(action)
         state = self._snap_state()
+
+        if penalted:
+            return state, -100, True, info
 
         if traci.simulation.getMinExpectedNumber() == 0:
             return state, reward, True, info
@@ -110,7 +113,7 @@ class SumoEnv(gym.Env):
 
     def _take_action(self, action):
         action_tuple = self.actions[action]
-        not_viable_action_penalty = 0
+        penalted = False
 
         step = 0
 
@@ -134,7 +137,7 @@ class SumoEnv(gym.Env):
                         self.phases_durations[phase_id] < 0
                         or self.phases_durations[phase_id] > 60
                     ):
-                        not_viable_action_penalty = -PENALTY
+                        penalted = True
 
                     self.phases_durations[phase_id] = max(
                         0.0, min(self.phases_durations[phase_id], 60.0)
@@ -179,7 +182,7 @@ class SumoEnv(gym.Env):
 
         # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
 
-        return -pressure + not_viable_action_penalty, pressure
+        return -pressure, pressure, penalted
 
     def reset(self):
         traci.close()
