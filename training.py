@@ -62,6 +62,8 @@ def main_train():
     target_net = DQN()
     target_net.eval()
 
+    target_net.load_state_dict(net.state_dict())
+
     net.to(device)
     target_net.to(device)
 
@@ -79,6 +81,7 @@ def main_train():
         for ep in range(num_episodes):
             state = env.reset()
 
+
             ep_len = 0
             done = False
             while not done and ep_len < max_ep_len:
@@ -91,7 +94,8 @@ def main_train():
                     tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
                     action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
 
-                next_state, reward, done = env.step(action)
+                next_state, reward, done, info = env.step(action)
+
                 rewards_queue.append(reward)
                 print(total_steps, np.mean(rewards_queue))
 
