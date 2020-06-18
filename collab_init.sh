@@ -12,4 +12,5 @@ pip install gym
 pip install pygame
 
 # %env  SUMO_HOME=/usr/local/share/sumo
-export SUMO_HOME=/usr/local/share/sumo
+# export SUMO_HOME=/usr/local/share/sumo
+export SUMO_HOME=/usr/share/sumo # colab version

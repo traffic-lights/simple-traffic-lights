@@ -38,8 +38,6 @@ TRAFFICLIGHTS_PHASES = 4
 REPLAY_FPS = 8
 
 
-
-
 class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
@@ -77,10 +75,6 @@ class SumoEnv(gym.Env):
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
         self.replay_folder = replay_folder
-
-        self.init_state = "environment/init_state.xml"
-
-        traci.simulation.saveState(self.init_state)
 
     def step(self, action):
         reward = None
@@ -192,19 +186,10 @@ class SumoEnv(gym.Env):
         return -pressure, pressure, penalted
 
     def reset(self):
-        if len(traci.vehicle.getIDList()) == 0:
-            print("No vehicles :(")
-
-        for vehicle in traci.vehicle.getIDList():
-            traci.vehicle.remove(vehicle, tc.REMOVE_ARRIVED)
-
-        traci.simulation.loadState(self.init_state)
+        traci.close()
+        traci.start(self.sumo_cmd)
 
         self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
-
-        for tls in traci.trafficlight.getIDList():
-            traci.trafficlight.setPhase(tls, 0)
-            traci.trafficlight.setPhaseDuration(tls, DEFAULT_DURATION)
 
         return self._snap_state()
 
