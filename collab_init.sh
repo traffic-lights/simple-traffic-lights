@@ -7,7 +7,7 @@ sudo apt-get update
 sudo apt-get install sumo sumo-tools sumo-doc
 
 
-pip install traci
+# pip install traci
 pip install gym
 pip install pygame
 
