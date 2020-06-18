@@ -1,3 +1,11 @@
+import os, sys
+
+if "SUMO_HOME" in os.environ:
+    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
+    sys.path.append(tools)
+else:
+    sys.exit("please declare environment variable 'SUMO_HOME'")
+
 from pathlib import Path
 
 import gym
@@ -9,7 +17,6 @@ import traci.constants as tc
 import imageio
 from os import listdir
 from os.path import isfile, join
-import os, sys
 import tempfile
 import numpy as np
 import datetime
@@ -21,7 +28,7 @@ VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
 
-PENALTY = 1000
+DEFAULT_DURATION = 20.0
 
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
@@ -30,11 +37,7 @@ TRAFFICLIGHTS_PHASES = 4
 
 REPLAY_FPS = 8
 
-if "SUMO_HOME" in os.environ:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-    sys.path.append(tools)
-else:
-    sys.exit("please declare environment variable 'SUMO_HOME'")
+
 
 
 class SumoEnv(gym.Env):
@@ -55,7 +58,7 @@ class SumoEnv(gym.Env):
         else:
             sumo_binary = "sumo"
 
-        self.sumo_cmd = [sumo_binary, "-c", config_file]
+        self.sumo_cmd = [sumo_binary, "-c", config_file, "--no-step-log", "true"]
 
         traci.start(self.sumo_cmd)
 
@@ -69,11 +72,13 @@ class SumoEnv(gym.Env):
 
         self.action_space = spaces.Discrete(len(self.actions))
 
-        self.phases_durations = [20.0, 20.0, 20.0, 20.0]
+        self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
 
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
         self.replay_folder = replay_folder
+
+        self.init_state = "environment/init_state.xml"
 
     def step(self, action):
         reward = None
@@ -185,8 +190,20 @@ class SumoEnv(gym.Env):
         return -pressure, pressure, penalted
 
     def reset(self):
-        traci.close()
-        traci.start(self.sumo_cmd)
+        if len(traci.vehicle.getIDList()) == 0:
+            print("No vehicles :(")
+            sys.exit()
+
+        for vehicle in traci.vehicle.getIDList():
+            traci.vehicle.remove(vehicle, tc.REMOVE_ARRIVED)
+
+        # traci.simulation.loadState(self.init_state)
+
+        self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
+
+        for tls in traci.trafficlight.getIDList():
+            traci.trafficlight.setPhase(tls, 0)
+            traci.trafficlight.setPhaseDuration(tls, DEFAULT_DURATION)
 
         return self._snap_state()
 
