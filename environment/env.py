@@ -192,7 +192,6 @@ class SumoEnv(gym.Env):
     def reset(self):
         if len(traci.vehicle.getIDList()) == 0:
             print("No vehicles :(")
-            sys.exit()
 
         for vehicle in traci.vehicle.getIDList():
             traci.vehicle.remove(vehicle, tc.REMOVE_ARRIVED)
