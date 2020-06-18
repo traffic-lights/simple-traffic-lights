@@ -80,6 +80,8 @@ class SumoEnv(gym.Env):
 
         self.init_state = "environment/init_state.xml"
 
+        traci.simulation.saveState(self.init_state)
+
     def step(self, action):
         reward = None
 
@@ -196,7 +198,7 @@ class SumoEnv(gym.Env):
         for vehicle in traci.vehicle.getIDList():
             traci.vehicle.remove(vehicle, tc.REMOVE_ARRIVED)
 
-        # traci.simulation.loadState(self.init_state)
+        traci.simulation.loadState(self.init_state)
 
         self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
 
