@@ -1,3 +1,11 @@
+import os, sys
+
+if "SUMO_HOME" in os.environ:
+    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
+    sys.path.append(tools)
+else:
+    sys.exit("please declare environment variable 'SUMO_HOME'")
+
 from pathlib import Path
 
 import gym
@@ -9,7 +17,6 @@ import traci.constants as tc
 import imageio
 from os import listdir
 from os.path import isfile, join
-import os, sys
 import tempfile
 import numpy as np
 import datetime
@@ -21,7 +28,7 @@ VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
 
-PENALTY = 1000
+DEFAULT_DURATION = 20.0
 
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
@@ -29,12 +36,6 @@ DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 TRAFFICLIGHTS_PHASES = 4
 
 REPLAY_FPS = 8
-
-if "SUMO_HOME" in os.environ:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-    sys.path.append(tools)
-else:
-    sys.exit("please declare environment variable 'SUMO_HOME'")
 
 
 class SumoEnv(gym.Env):
@@ -55,7 +56,7 @@ class SumoEnv(gym.Env):
         else:
             sumo_binary = "sumo"
 
-        self.sumo_cmd = [sumo_binary, "-c", config_file]
+        self.sumo_cmd = [sumo_binary, "-c", config_file, "--no-step-log", "true"]
 
         traci.start(self.sumo_cmd)
 
@@ -69,7 +70,7 @@ class SumoEnv(gym.Env):
 
         self.action_space = spaces.Discrete(len(self.actions))
 
-        self.phases_durations = [20.0, 20.0, 20.0, 20.0]
+        self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
 
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
@@ -78,8 +79,11 @@ class SumoEnv(gym.Env):
     def step(self, action):
         reward = None
 
-        reward, info = self._take_action(action)
+        reward, info, penalted = self._take_action(action)
         state = self._snap_state()
+
+        if penalted:
+            return state, -100, True, info
 
         if traci.simulation.getMinExpectedNumber() == 0:
             return state, reward, True, info
@@ -110,7 +114,7 @@ class SumoEnv(gym.Env):
 
     def _take_action(self, action):
         action_tuple = self.actions[action]
-        not_viable_action_penalty = 0
+        penalted = False
 
         step = 0
 
@@ -134,7 +138,7 @@ class SumoEnv(gym.Env):
                         self.phases_durations[phase_id] < 0
                         or self.phases_durations[phase_id] > 60
                     ):
-                        not_viable_action_penalty = -PENALTY
+                        penalted = True
 
                     self.phases_durations[phase_id] = max(
                         0.0, min(self.phases_durations[phase_id], 60.0)
@@ -179,11 +183,13 @@ class SumoEnv(gym.Env):
 
         # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
 
-        return -pressure + not_viable_action_penalty, pressure
+        return -pressure, pressure, penalted
 
     def reset(self):
         traci.close()
         traci.start(self.sumo_cmd)
+
+        self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
 
         return self._snap_state()
 

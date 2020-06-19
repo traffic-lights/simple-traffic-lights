@@ -6,7 +6,6 @@ authors = ["Kasper,Marcin,Jakub"]
 
 [tool.poetry.dependencies]
 python = "~3.7"
-cityflow = {git = "https://github.com/cityflow-project/CityFlow.git"}
 gym = "^0.17.1"
 torch = "^1.5.0"
 imageio = "^2.8.0"

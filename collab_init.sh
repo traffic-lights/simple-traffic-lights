@@ -7,9 +7,10 @@ sudo apt-get update
 sudo apt-get install sumo sumo-tools sumo-doc
 
 
-pip install traci
+# pip install traci
 pip install gym
 pip install pygame
 
 # %env  SUMO_HOME=/usr/local/share/sumo
-export SUMO_HOME=/usr/local/share/sumo
+# export SUMO_HOME=/usr/local/share/sumo
+export SUMO_HOME=/usr/share/sumo # colab version
