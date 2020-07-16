@@ -76,6 +76,11 @@ class SumoEnv(gym.Env):
         self.temp_folder = tempfile.TemporaryDirectory()
         self.replay_folder = replay_folder
 
+        self.throughput = 0
+
+        self.travel_time = 0
+        self.traveling_cars = {}
+
     def step(self, action):
         reward = None
 
@@ -116,6 +121,11 @@ class SumoEnv(gym.Env):
         action_tuple = self.actions[action]
         penalted = False
 
+        arrived_cars = set()
+
+        accumulated_travel_time = 0
+        accumulated_cars = 0
+
         step = 0
 
         phases_tested_cnt = 0
@@ -148,16 +158,28 @@ class SumoEnv(gym.Env):
                     self.tls_id, self.phases_durations[phase_id]
                 )
 
-            prev_phase = current_phase
-            traci.simulationStep()
+            time = traci.simulation.getTime()
 
-            step += 1
             if step % 10 == 0:
                 if self.save_replay:
-                    time = traci.simulation.getTime()
                     traci.gui.screenshot(
                         "View #0", self.temp_folder.name + f"/state_{time}.png"
                     )
+
+            for car in traci.simulation.getDepartedIDList():
+                self.traveling_cars[car] = time
+
+            for car in traci.simulation.getArrivedIDList():
+                arrived_cars.add(car)
+
+                accumulated_travel_time += time - self.traveling_cars[car]
+                del self.traveling_cars[car]
+
+                accumulated_cars += 1
+
+            prev_phase = current_phase
+            traci.simulationStep()
+            step += 1
 
         incomings = set()
         outgoings = set()
@@ -181,6 +203,13 @@ class SumoEnv(gym.Env):
 
         pressure = abs(incomings_sum - outgoings_sum)
 
+        self.throughput = len(arrived_cars)
+
+        if accumulated_cars == 0:
+            self.travel_time = 0
+        else:
+            self.travel_time = round(accumulated_travel_time / accumulated_cars, 2)
+
         # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
 
         return -pressure, pressure, penalted
@@ -196,6 +225,19 @@ class SumoEnv(gym.Env):
     def render(self, mode="human"):
         pass
 
+    def get_throughput(self):
+        return self.throughput
+
+    def get_travel_time(self): # in seconds
+        return self.travel_time
+
+    def close(self):
+        traci.close()
+
+        if self.save_replay:
+            self._generate_gif()
+            self.temp_folder.cleanup()
+
     def _generate_gif(self):
         src_path = self.temp_folder.name
         res_path = self.replay_folder
@@ -210,10 +252,3 @@ class SumoEnv(gym.Env):
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")
                 writer.append_data(image)
-
-    def close(self):
-        traci.close()
-
-        if self.save_replay:
-            self._generate_gif()
-            self.temp_folder.cleanup()
