@@ -24,7 +24,7 @@ class TrainingParameters:
     num_episodes: int = 1500  # how many episodes of game environment to train network with.
     pre_train_steps: int = 1000  # how many steps of random actions before training begins.
 
-    max_ep_len: int = 500  # The max allowed length of our episode
+    max_ep_len: int = 300  # The max allowed length of our episode
 
     tau: float = 0.0003  # Rate to update target network toward primary network
     target_update_freq: int = 1  # how often to preform a target net update

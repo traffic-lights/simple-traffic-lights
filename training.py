@@ -67,8 +67,8 @@ def test_model(net, env, max_ep_len, device, should_random=False):
             ep_len += 1
 
         return {
-            'throughput': np.mean(env.get_throughput()),
-            'travel_time': np.mean(env.get_travel_time()),
+            'throughput': env.get_throughput(),
+            'travel_time': env.get_travel_time(),
             'mean_reward': np.mean(rewards)
         }
 
