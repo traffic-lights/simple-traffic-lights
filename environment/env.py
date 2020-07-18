@@ -208,12 +208,9 @@ class SumoEnv(gym.Env):
 
         pressure = abs(incomings_sum - outgoings_sum)
 
-        self.throughput = len(arrived_cars)
+        self.throughput += len(arrived_cars)
 
-        if accumulated_cars == 0:
-            self.travel_time = 0
-        else:
-            self.travel_time = round(accumulated_travel_time / accumulated_cars, 2)
+        self.travel_time += accumulated_travel_time
 
         # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
 
@@ -224,6 +221,8 @@ class SumoEnv(gym.Env):
         traci.start(self.sumo_cmd)
 
         self.phases_durations = [DEFAULT_DURATION for _ in range(4)]
+        self.travel_time = 0
+        self.throughput = 0
 
         return self._snap_state()
 
@@ -234,7 +233,7 @@ class SumoEnv(gym.Env):
         return self.throughput
 
     def get_travel_time(self):  # in seconds
-        return self.travel_time
+        return round(self.travel_time / self.throughput, 2)
 
     def close(self):
         traci.close()
