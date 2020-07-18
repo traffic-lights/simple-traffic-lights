@@ -1,6 +1,6 @@
 import os, sys
 
-DEFAULT_SUMO_PATH = os.path.join('/usr', 'share', 'sumo')
+DEFAULT_SUMO_PATH = os.path.join("/usr", "share", "sumo")
 if "SUMO_HOME" not in os.environ:
     tools = os.path.join(DEFAULT_SUMO_PATH, "tools")
 else:
@@ -9,6 +9,9 @@ else:
 sys.path.append(tools)
 
 from pathlib import Path
+
+# from collections import namedtuple
+from random import randrange
 
 import gym
 from gym import error, spaces, utils
@@ -25,17 +28,19 @@ import datetime
 
 from settings import PROJECT_ROOT
 
-VEHICLE_LENGTH = 5
 NET_WIDTH = 200
 NET_HEIGHT = 200
-
-DEFAULT_DURATION = 20.0
-
-MIN_DURATION = 5.0
-MAX_DURATION = 60.0
-
+VEHICLE_LENGTH = 5
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
+
+OCCUPANCY_FACTOR = 0.75
+MIN_SPAWN_PERIOD = 15
+MAX_SPAWN_PERIOD = 22
+
+DEFAULT_DURATION = 20.0
+MIN_DURATION = 5.0
+MAX_DURATION = 60.0
 
 TRAFFICLIGHTS_PHASES = 4
 
@@ -46,11 +51,11 @@ class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-            self,
-            config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
-            replay_folder=Path(PROJECT_ROOT, "replays"),
-            save_replay=False,
-            render=False,
+        self,
+        config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
+        replay_folder=Path(PROJECT_ROOT, "replays"),
+        save_replay=False,
+        render=False,
     ):
         super().__init__()
 
@@ -60,7 +65,15 @@ class SumoEnv(gym.Env):
         else:
             sumo_binary = "sumo"
 
-        self.sumo_cmd = [sumo_binary, "-c", config_file, "--no-step-log", "true", "--time-to-teleport", "-1"]
+        self.sumo_cmd = [
+            sumo_binary,
+            "-c",
+            config_file,
+            "--no-step-log",
+            "true",
+            "--time-to-teleport",
+            "-1",
+        ]
 
         traci.start(self.sumo_cmd)
 
@@ -84,6 +97,10 @@ class SumoEnv(gym.Env):
 
         self.travel_time = 0
         self.traveling_cars = {}
+
+        self.route_timers = {}
+        self.route_vehicle_id = {}
+        self._initialize_route_paramaters()
 
     def step(self, action):
         reward = None
@@ -135,7 +152,8 @@ class SumoEnv(gym.Env):
 
         phases_tested_cnt = 0
         prev_phase = -1
-        while traci.simulation.getMinExpectedNumber() > 0:
+        while True:
+            self._generate_vehicles()
             current_phase = traci.trafficlight.getPhase(self.tls_id)
 
             if prev_phase != current_phase:
@@ -150,8 +168,8 @@ class SumoEnv(gym.Env):
                     self.phases_durations[phase_id] += action_tuple[1]
 
                     if (
-                            self.phases_durations[phase_id] < MIN_DURATION
-                            or self.phases_durations[phase_id] > MAX_DURATION
+                        self.phases_durations[phase_id] < MIN_DURATION
+                        or self.phases_durations[phase_id] > MAX_DURATION
                     ):
                         penalted = True
 
@@ -224,6 +242,8 @@ class SumoEnv(gym.Env):
         self.travel_time = 0
         self.throughput = 0
 
+        self._initialize_route_paramaters()
+
         return self._snap_state()
 
     def render(self, mode="human"):
@@ -233,6 +253,9 @@ class SumoEnv(gym.Env):
         return self.throughput
 
     def get_travel_time(self):  # in seconds
+        if self.throughput == 0:
+            return 0
+
         return round(self.travel_time / self.throughput, 2)
 
     def close(self):
@@ -251,8 +274,30 @@ class SumoEnv(gym.Env):
 
         res_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         with imageio.get_writer(
-                f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
+            f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
         ) as writer:
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")
                 writer.append_data(image)
+
+    def _generate_vehicles(self):
+        for route in traci.route.getIDList():
+            current_time = traci.simulation.getTime()
+            start_edge = traci.route.getEdges(route)[0]
+            last_occupancy = traci.edge.getLastStepOccupancy(start_edge)
+
+            if current_time - self.route_timers[route] >= 0:
+                if last_occupancy >= OCCUPANCY_FACTOR:
+                    continue
+
+                traci.vehicle.add(f"{route}_{self.route_vehicle_id[route]}", route)
+
+                self.route_timers[route] = current_time + randrange(
+                    MIN_SPAWN_PERIOD, MAX_SPAWN_PERIOD
+                )
+                self.route_vehicle_id[route] += 1
+
+    def _initialize_route_paramaters(self):
+        for route in traci.route.getIDList():
+            self.route_timers[route] = 0
+            self.route_vehicle_id[route] = 0
