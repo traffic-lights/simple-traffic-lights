@@ -31,6 +31,9 @@ NET_HEIGHT = 200
 
 DEFAULT_DURATION = 20.0
 
+MIN_DURATION = 5.0
+MAX_DURATION = 60.0
+
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
@@ -57,7 +60,7 @@ class SumoEnv(gym.Env):
         else:
             sumo_binary = "sumo"
 
-        self.sumo_cmd = [sumo_binary, "-c", config_file, "--no-step-log", "true"]
+        self.sumo_cmd = [sumo_binary, "-c", config_file, "--no-step-log", "true", "--time-to-teleport", "-1"]
 
         traci.start(self.sumo_cmd)
 
@@ -147,13 +150,13 @@ class SumoEnv(gym.Env):
                     self.phases_durations[phase_id] += action_tuple[1]
 
                     if (
-                            self.phases_durations[phase_id] < 0
-                            or self.phases_durations[phase_id] > 60
+                            self.phases_durations[phase_id] < MIN_DURATION
+                            or self.phases_durations[phase_id] > MAX_DURATION
                     ):
                         penalted = True
 
                     self.phases_durations[phase_id] = max(
-                        0.0, min(self.phases_durations[phase_id], 60.0)
+                        MIN_DURATION, min(self.phases_durations[phase_id], MAX_DURATION)
                     )  # clamp
 
                 traci.trafficlight.setPhaseDuration(

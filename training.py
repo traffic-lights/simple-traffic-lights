@@ -46,24 +46,34 @@ def update_target_net(net, target_net, tau):
         target_param.data.copy_(tau * param.data + target_param.data * (1.0 - tau))
 
 
-def test_model(net, env, max_ep_len, device):
+def test_model(net, env, max_ep_len, device, should_random=False):
     net = net.eval()
+    rewards = []
+    throughputs = []
+    travel_times = []
     with torch.no_grad():
-        state = env.reset()
-        ep_len = 0
-        done = False
-        rewards = []
-        while not done and ep_len < max_ep_len:
-            tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-            action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
-            state, reward, done, info = env.step(action)
-            rewards.append(reward)
+        for i in range(3):
+            state = env.reset()
+            ep_len = 0
+            done = False
 
-        return {
-            'throughput': env.get_throughput(),
-            'travel_time': env.get_travel_time(),
-            'mean_reward': np.mean(rewards)
-        }
+            while not done and ep_len < max_ep_len:
+                if should_random:
+                    action = env.action_space.sample()
+                else:
+                    tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
+                    action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
+                state, reward, done, info = env.step(action)
+                rewards.append(reward)
+                ep_len += 1
+            throughputs.append(env.get_throughput())
+            travel_times.append(env.get_travel_time())
+
+    return {
+        'throughput': np.mean(throughputs),
+        'travel_time': np.mean(travel_times),
+        'mean_reward': np.mean(rewards)
+    }
 
 
 def get_model_name(suffix):
@@ -160,12 +170,22 @@ def main_train():
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
-            # if params.total_steps > params.pre_train_steps:
-            test_stats = test_model(training_state.model, env, params.max_ep_len, device)
+            if params.total_steps < params.pre_train_steps:
+                random_test = True
+            else:
+                random_test = False
+
+            test_stats = test_model(training_state.model, env, params.max_ep_len, device,
+                                    random_test)
+
             training_state.model = training_state.model.train()
 
             for k, v in test_stats.items():
-                writer.add_scalar('Test/{}'.format(k), v, params.current_episode)
+                if random_test:
+                    name = 'Test/random/{}'.format(k)
+                else:
+                    name = 'Test/model/{}'.format(k)
+                writer.add_scalar(name, v, params.current_episode)
 
             writer.flush()
 
