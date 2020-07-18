@@ -49,31 +49,28 @@ def update_target_net(net, target_net, tau):
 def test_model(net, env, max_ep_len, device, should_random=False):
     net = net.eval()
     rewards = []
-    throughputs = []
-    travel_times = []
+
     with torch.no_grad():
-        for i in range(3):
-            state = env.reset()
-            ep_len = 0
-            done = False
 
-            while not done and ep_len < max_ep_len:
-                if should_random:
-                    action = env.action_space.sample()
-                else:
-                    tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                    action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
-                state, reward, done, info = env.step(action)
-                rewards.append(reward)
-                ep_len += 1
-            throughputs.append(env.get_throughput())
-            travel_times.append(env.get_travel_time())
+        state = env.reset()
+        ep_len = 0
+        done = False
 
-    return {
-        'throughput': np.mean(throughputs),
-        'travel_time': np.mean(travel_times),
-        'mean_reward': np.mean(rewards)
-    }
+        while not done and ep_len < max_ep_len:
+            if should_random:
+                action = env.action_space.sample()
+            else:
+                tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
+                action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
+            state, reward, done, info = env.step(action)
+            rewards.append(reward)
+            ep_len += 1
+
+        return {
+            'throughput': np.mean(env.get_throughput()),
+            'travel_time': np.mean(env.get_travel_time()),
+            'mean_reward': np.mean(rewards)
+        }
 
 
 def get_model_name(suffix):
