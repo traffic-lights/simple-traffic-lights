@@ -40,16 +40,16 @@
     <route edges="e2 e7" color="yellow" id="route_7" />
     <route edges="e2 e5" color="yellow" id="route_8" />
     <route edges="e6 e1" color="yellow" id="route_9" />
-    <flow id="flow_0" from="e2" to="e1" end="3600.00" period="18" />
-    <flow id="flow_1" from="e2" to="e7" end="3600.00" period="18" />
-    <flow id="flow_10" from="e4" to="e1" end="3600.00" period="18" />
-    <flow id="flow_11" from="e4" to="e7" end="3600.00" period="18" />
-    <flow id="flow_2" from="e2" to="e5" end="3600.00" period="18" />
-    <flow id="flow_3" from="e0" to="e3" end="3600.00" period="18" />
-    <flow id="flow_4" from="e0" to="e5" end="3600.00" period="18" />
-    <flow id="flow_5" from="e0" to="e7" end="3600.00" period="18" />
-    <flow id="flow_6" from="e6" to="e1" end="3600.00" period="18" />
-    <flow id="flow_7" from="e6" to="e3" end="3600.00" period="18" />
-    <flow id="flow_8" from="e6" to="e5" end="3600.00" period="18" />
-    <flow id="flow_9" from="e4" to="e3" end="3600.00" period="18" />
+    <flow id="flow_0" from="e2" to="e1" end="3600000000.00" period="18" />
+    <flow id="flow_1" from="e2" to="e7" end="3600000000.00" period="18" />
+    <flow id="flow_10" from="e4" to="e1" end="3600000000.00" period="18" />
+    <flow id="flow_11" from="e4" to="e7" end="3600000000.00" period="18" />
+    <flow id="flow_2" from="e2" to="e5" end="3600000000.00" period="18" />
+    <flow id="flow_3" from="e0" to="e3" end="3600000000.00" period="18" />
+    <flow id="flow_4" from="e0" to="e5" end="3600000000.00" period="18" />
+    <flow id="flow_5" from="e0" to="e7" end="3600000000.00" period="18" />
+    <flow id="flow_6" from="e6" to="e1" end="3600000000.00" period="18" />
+    <flow id="flow_7" from="e6" to="e3" end="3600000000.00" period="18" />
+    <flow id="flow_8" from="e6" to="e5" end="3600000000.00" period="18" />
+    <flow id="flow_9" from="e4" to="e3" end="3600000000.00" period="18" />
 </routes>
