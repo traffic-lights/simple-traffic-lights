@@ -1,5 +1,7 @@
 import random
 from collections import deque
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -9,9 +11,15 @@ from torch.optim import Adam
 from environment.env import SumoEnv
 from memory import Memory
 from neural_net import DQN
+from torch.utils.tensorboard import SummaryWriter
+
+from training_parameters import TrainingParameters, TrainingState
 
 
-def train_all_batches(memory, net, target_net, optimizer, loss_fn, batch_size, disc_factor, device=torch.device('cpu')):
+def train_all_batches(memory, net, target_net, optimizer, loss_fn,
+                      batch_size, disc_factor, device=torch.device('cpu')):
+    net = net.train()
+    losses = []
     for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
         with torch.no_grad():
             next_value = torch.max(target_net(batch['next_state']), dim=1)[0]
@@ -25,9 +33,12 @@ def train_all_batches(memory, net, target_net, optimizer, loss_fn, batch_size, d
 
         optimizer.zero_grad()
         loss = loss_fn(actual_value, my_value)
-        print(loss)
+        losses.append(loss.item())
+
         loss.backward()
         optimizer.step()
+
+    return np.mean(losses)
 
 
 def update_target_net(net, target_net, tau):
@@ -35,80 +46,139 @@ def update_target_net(net, target_net, tau):
         target_param.data.copy_(tau * param.data + target_param.data * (1.0 - tau))
 
 
-def main_train():
-    memory_size = 10000
-    batch_size = 128
-    disc_factor = 0.9
-    update_freq = 1  # How often to perform a training step.
+def test_model(net, env, max_ep_len, device):
+    net = net.eval()
+    with torch.no_grad():
+        state = env.reset()
+        ep_len = 0
+        done = False
+        rewards = []
+        while not done and ep_len < max_ep_len:
+            tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
+            action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
+            state, reward, done, info = env.step(action)
+            rewards.append(reward)
 
-    start_e = 1  # start chance of random action
-    end_e = 0.01  # end change of random action
+        return {
+            'throughput': env.get_throughput(),
+            'travel_time': env.get_travel_time(),
+            'mean_reward': np.mean(rewards)
+        }
 
-    annealing_steps = 10000  # how many steps of training to reduce start_e to end_e
-    num_episodes = 1500  # how many episodes of game environment to train network with.
-    pre_train_steps = 1000  # how many steps of random actions before training begins.
 
-    max_ep_len = 500  # The max allowed length of our episode
-    tau = 0.006  # Rate to update target network toward primary network
+def get_model_name(suffix):
+    return suffix + '_' + datetime.now().strftime("%Y-%m-%d.%H-%M-%S-%f")
 
-    lr = 0.0001
 
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
-    print("training on: {}".format(device))
+def load_training_path(path):
+    pass
 
-    memory = Memory(memory_size)
+
+def get_new_training():
+    model_name = get_model_name('ddqn')
+    training_param = TrainingParameters(model_name)
+
+    memory = Memory(training_param.memory_size)
 
     net = DQN()
     target_net = DQN()
     target_net.eval()
 
     target_net.load_state_dict(net.state_dict())
+    optimizer = Adam(net.parameters(), lr=training_param.lr)
 
-    net.to(device)
-    target_net.to(device)
-
-    eps = start_e
-    total_steps = 0
-    step_drop = (start_e - end_e) / annealing_steps
-
-    optimizer = Adam(net.parameters(), lr=lr)
     loss_fn = MSELoss()
+    return TrainingState(
+        training_param,
+        net,
+        target_net,
+        optimizer,
+        loss_fn,
+        memory
+    )
 
-    rewards_queue = deque(maxlen=100)
 
+def main_train():
+    training_state = get_new_training()
+    params = training_state.training_parameters
+
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    print("training on: {}".format(device))
+
+    training_state.model.to(device)
+    training_state.target_model.to(device)
+
+    rewards_queue = deque(maxlen=300)
+
+    save_root = Path('saved', params.model_name)
+
+    state_save_root = Path(save_root, 'states')
+    state_save_root.mkdir(exist_ok=True, parents=True)
+
+    tensorboard_save_root = Path(save_root, 'tensorboard')
+    tensorboard_save_root.mkdir(exist_ok=True, parents=True)
+    writer = SummaryWriter(tensorboard_save_root)
     with SumoEnv(render=False) as env:
 
-        for ep in range(num_episodes):
-            state = env.reset()
+        while params.current_episode < params.num_episodes:
 
+            state = env.reset()
 
             ep_len = 0
             done = False
-            while not done and ep_len < max_ep_len:
+            while not done and ep_len < params.max_ep_len:
                 ep_len += 1
-                total_steps += 1
-                if random.random() < eps or total_steps < pre_train_steps:
+                params.total_steps += 1
+                if random.random() < params.current_eps or params.total_steps < params.pre_train_steps:
                     action = env.action_space.sample()
 
                 else:
                     tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                    action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
+                    action = training_state.model(tensor_state).max(1)[1][0].cpu().detach().numpy()
 
                 next_state, reward, done, info = env.step(action)
 
                 rewards_queue.append(reward)
-                print(total_steps, np.mean(rewards_queue))
+                print(params.total_steps, np.mean(rewards_queue))
 
-                memory.add_experience(state, action, reward, next_state, done)
+                training_state.replay_memory.add_experience(state, action, reward, next_state, done)
+                state = next_state
 
-                if total_steps > pre_train_steps:
-                    if eps > end_e:
-                        eps -= step_drop
+                if params.total_steps > params.pre_train_steps:
+                    if params.current_eps > params.end_e:
+                        params.current_eps -= params.step_drop
 
-                    if total_steps % update_freq == 0:
-                        train_all_batches(memory, net, target_net, optimizer,
-                                          loss_fn, batch_size, disc_factor, device=device)
-                        update_target_net(net, target_net, tau)
+                    if params.total_steps % params.training_freq == 0:
+                        mean_loss = train_all_batches(
+                            training_state.replay_memory,
+                            training_state.model, training_state.target_model,
+                            training_state.optimizer,
+                            training_state.loss_fn, params.batch_size, params.disc_factor, device=device)
+
+                        writer.add_scalar('Train/Loss', mean_loss, params.total_steps)
+
+                    if params.total_steps % params.target_update_freq == 0:
+                        update_target_net(training_state.model, training_state.target_model, params.tau)
+
+            # if params.total_steps > params.pre_train_steps:
+            test_stats = test_model(training_state.model, env, params.max_ep_len, device)
+            training_state.model = training_state.model.train()
+
+            for k, v in test_stats.items():
+                writer.add_scalar('Test/{}'.format(k), v, params.current_episode)
+
+            writer.flush()
+
+            params.current_episode += 1
+
+            if params.current_episode % params.save_freq == 0:
+                training_state.save(
+                    Path(state_save_root, 'ep_{}_{}.tar'.format(params.current_episode, params.model_name))
+                )
+
+        training_state.save(
+            Path(state_save_root, 'final_{}.tar'.format(params.current_episode, params.model_name))
+        )
 
 
 if __name__ == '__main__':

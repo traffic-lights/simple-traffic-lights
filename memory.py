@@ -8,6 +8,18 @@ import numpy as np
 
 
 class Memory:
+    def get_save_dict(self):
+        return {
+            'init_params': {'buffer_size': self.buffer_size, 'state_shape': self.state_shape},
+            'buffer': self.buffer
+        }
+
+    @classmethod
+    def load_from_dict(cls, dict_to_load):
+        m = Memory(**dict_to_load['init_params'])
+        m.buffer = dict_to_load['buffer']
+        return m
+
     def __init__(self, buffer_size, state_shape=(40, 40, 2)):
         self.buffer_size = buffer_size
         self.state_shape = state_shape

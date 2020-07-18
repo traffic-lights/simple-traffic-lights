@@ -1,10 +1,12 @@
 import os, sys
 
-if "SUMO_HOME" in os.environ:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-    sys.path.append(tools)
+DEFAULT_SUMO_PATH = os.path.join('/usr', 'share', 'sumo')
+if "SUMO_HOME" not in os.environ:
+    tools = os.path.join(DEFAULT_SUMO_PATH, "tools")
 else:
-    sys.exit("please declare environment variable 'SUMO_HOME'")
+    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
+
+sys.path.append(tools)
 
 from pathlib import Path
 
@@ -22,7 +24,6 @@ import numpy as np
 import datetime
 
 from settings import PROJECT_ROOT
-
 
 VEHICLE_LENGTH = 5
 NET_WIDTH = 200
@@ -42,11 +43,11 @@ class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-        self,
-        config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
-        replay_folder=Path(PROJECT_ROOT, "replays"),
-        save_replay=False,
-        render=False,
+            self,
+            config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
+            replay_folder=Path(PROJECT_ROOT, "replays"),
+            save_replay=False,
+            render=False,
     ):
         super().__init__()
 
@@ -88,7 +89,8 @@ class SumoEnv(gym.Env):
         state = self._snap_state()
 
         if penalted:
-            return state, -100, True, info
+            reward -= 200
+            # return state, -100, True, info
 
         if traci.simulation.getMinExpectedNumber() == 0:
             return state, reward, True, info
@@ -145,8 +147,8 @@ class SumoEnv(gym.Env):
                     self.phases_durations[phase_id] += action_tuple[1]
 
                     if (
-                        self.phases_durations[phase_id] < 0
-                        or self.phases_durations[phase_id] > 60
+                            self.phases_durations[phase_id] < 0
+                            or self.phases_durations[phase_id] > 60
                     ):
                         penalted = True
 
@@ -228,7 +230,7 @@ class SumoEnv(gym.Env):
     def get_throughput(self):
         return self.throughput
 
-    def get_travel_time(self): # in seconds
+    def get_travel_time(self):  # in seconds
         return self.travel_time
 
     def close(self):
@@ -247,7 +249,7 @@ class SumoEnv(gym.Env):
 
         res_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         with imageio.get_writer(
-            f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
+                f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
         ) as writer:
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")
