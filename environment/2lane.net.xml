@@ -1,24 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Fri 01 May 2020 06:25:21 PM CEST by Eclipse SUMO netedit Version 1.6.0
+<!-- generated on Sat 18 Jul 2020 03:18:44 PM CEST by Eclipse SUMO netedit Version UNKNOWN
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <input>
+        <sumo-net-file value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.net.xml"/>
+    </input>
 
     <output>
         <output-file value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.net.xml"/>
     </output>
 
     <processing>
+        <geometry.min-radius.fix.railways value="false"/>
+        <geometry.max-grade.fix value="false"/>
         <offset.disable-normalization value="true"/>
+        <lefthand value="false"/>
     </processing>
 
     <junctions>
         <no-turnarounds value="true"/>
+        <junctions.corner-detail value="5"/>
+        <junctions.limit-turn-speed value="5.5"/>
+        <rectangular-lane-cut value="false"/>
     </junctions>
 
-    <netedit>
-        <route-files value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.rou.xml"/>
-        <data-files value="/home/Marcin/dev/inzyniera/simple-traffic-lights/environment/2lane.rou.xml"/>
-    </netedit>
+    <pedestrian>
+        <walkingareas value="false"/>
+    </pedestrian>
 
     <report>
         <aggregate-warnings value="5"/>
@@ -29,7 +38,7 @@
 
 <net version="1.6" junctionCornerDetail="5" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
-    <location netOffset="0.00,0.00" convBoundary="0.00,0.00,200.00,200.00" origBoundary="10000000000.00,10000000000.00,-10000000000.00,-10000000000.00" projParameter="!"/>
+    <location netOffset="0.00,0.00" convBoundary="0.00,0.00,200.00,200.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
 
     <edge id=":gneJ16_0" function="internal">
         <lane id=":gneJ16_0_0" index="0" speed="6.51" length="9.03" shape="95.20,110.40 94.85,107.95 93.80,106.20 92.05,105.15 89.60,104.80"/>
@@ -102,14 +111,14 @@
     </edge>
 
     <tlLogic id="gneJ16" type="static" programID="0" offset="0">
-        <phase duration="42" state="GGGGGrrrrrrrrrrrr"/>
-        <phase duration="3"  state="yyyyyrrrrrrrrrrrr"/>
-        <phase duration="42" state="rrrrGGGGGrrrrrrrr"/>
-        <phase duration="3"  state="rrrryyyyyrrrrrrrr"/>
-        <phase duration="42" state="rrrrrrrrGGGGGrrrr"/>
-        <phase duration="3"  state="rrrrrrrryyyyyrrrr"/>
-        <phase duration="42" state="GrrrrrrrrrrrGGGGG"/>
-        <phase duration="3"  state="yrrrrrrrrrrryyyyy"/>
+        <phase duration="42" state="GGGrrrrr"/>
+        <phase duration="3"  state="yyyrrrrr"/>
+        <phase duration="42" state="rrGGGrrr"/>
+        <phase duration="3"  state="rryyyrrr"/>
+        <phase duration="42" state="rrrrGGGr"/>
+        <phase duration="3"  state="rrrryyyr"/>
+        <phase duration="42" state="GrrrrrGG"/>
+        <phase duration="3"  state="yrrrrryy"/>
     </tlLogic>
 
     <junction id="gneJ16" type="traffic_light" x="100.00" y="100.00" incLanes="e2_0 e2_1 e4_0 e4_1 e6_0 e6_1 e0_0 e0_1" intLanes=":gneJ16_0_0 :gneJ16_1_0 :gneJ16_2_0 :gneJ16_3_0 :gneJ16_4_0 :gneJ16_5_0 :gneJ16_6_0 :gneJ16_7_0 :gneJ16_8_0 :gneJ16_9_0 :gneJ16_10_0 :gneJ16_11_0" shape="93.60,110.40 106.40,110.40 106.84,108.18 107.40,107.40 108.18,106.84 109.18,106.51 110.40,106.40 110.40,93.60 108.18,93.16 107.40,92.60 106.84,91.82 106.51,90.82 106.40,89.60 93.60,89.60 93.16,91.82 92.60,92.60 91.82,93.16 90.82,93.49 89.60,93.60 89.60,106.40 91.82,106.84 92.60,107.40 93.16,108.18 93.49,109.18">
@@ -131,18 +140,18 @@
     <junction id="gneJ20" type="dead_end" x="0.00" y="100.00" incLanes="e1_0 e1_1" intLanes="" shape="0.00,100.00 0.00,106.40 0.00,100.00"/>
     <junction id="gneJ21" type="dead_end" x="100.00" y="0.00" incLanes="e7_0 e7_1" intLanes="" shape="100.00,0.00 93.60,0.00 100.00,0.00"/>
 
-    <connection from="e0" to="e7" fromLane="0" toLane="0" via=":gneJ16_9_0" tl="gneJ16" linkIndex="12" dir="r" state="O"/>
-    <connection from="e0" to="e5" fromLane="1" toLane="1" via=":gneJ16_10_0" tl="gneJ16" linkIndex="14" dir="s" state="o"/>
-    <connection from="e0" to="e3" fromLane="1" toLane="1" via=":gneJ16_11_0" tl="gneJ16" linkIndex="15" dir="l" state="o"/>
+    <connection from="e0" to="e7" fromLane="0" toLane="0" via=":gneJ16_9_0" tl="gneJ16" linkIndex="6" dir="r" state="O"/>
+    <connection from="e0" to="e5" fromLane="1" toLane="1" via=":gneJ16_10_0" tl="gneJ16" linkIndex="7" dir="s" state="o"/>
+    <connection from="e0" to="e3" fromLane="1" toLane="1" via=":gneJ16_11_0" tl="gneJ16" linkIndex="7" dir="l" state="o"/>
     <connection from="e2" to="e1" fromLane="0" toLane="0" via=":gneJ16_0_0" tl="gneJ16" linkIndex="0" dir="r" state="O"/>
-    <connection from="e2" to="e7" fromLane="1" toLane="1" via=":gneJ16_1_0" tl="gneJ16" linkIndex="2" dir="s" state="O"/>
-    <connection from="e2" to="e5" fromLane="1" toLane="1" via=":gneJ16_2_0" tl="gneJ16" linkIndex="3" dir="l" state="o"/>
-    <connection from="e4" to="e3" fromLane="0" toLane="0" via=":gneJ16_3_0" tl="gneJ16" linkIndex="4" dir="r" state="O"/>
-    <connection from="e4" to="e1" fromLane="1" toLane="1" via=":gneJ16_4_0" tl="gneJ16" linkIndex="6" dir="s" state="o"/>
-    <connection from="e4" to="e7" fromLane="1" toLane="1" via=":gneJ16_5_0" tl="gneJ16" linkIndex="7" dir="l" state="o"/>
-    <connection from="e6" to="e5" fromLane="0" toLane="0" via=":gneJ16_6_0" tl="gneJ16" linkIndex="8" dir="r" state="O"/>
-    <connection from="e6" to="e3" fromLane="1" toLane="1" via=":gneJ16_7_0" tl="gneJ16" linkIndex="10" dir="s" state="O"/>
-    <connection from="e6" to="e1" fromLane="1" toLane="1" via=":gneJ16_8_0" tl="gneJ16" linkIndex="11" dir="l" state="o"/>
+    <connection from="e2" to="e7" fromLane="1" toLane="1" via=":gneJ16_1_0" tl="gneJ16" linkIndex="1" dir="s" state="O"/>
+    <connection from="e2" to="e5" fromLane="1" toLane="1" via=":gneJ16_2_0" tl="gneJ16" linkIndex="1" dir="l" state="o"/>
+    <connection from="e4" to="e3" fromLane="0" toLane="0" via=":gneJ16_3_0" tl="gneJ16" linkIndex="2" dir="r" state="O"/>
+    <connection from="e4" to="e1" fromLane="1" toLane="1" via=":gneJ16_4_0" tl="gneJ16" linkIndex="3" dir="s" state="o"/>
+    <connection from="e4" to="e7" fromLane="1" toLane="1" via=":gneJ16_5_0" tl="gneJ16" linkIndex="3" dir="l" state="o"/>
+    <connection from="e6" to="e5" fromLane="0" toLane="0" via=":gneJ16_6_0" tl="gneJ16" linkIndex="4" dir="r" state="O"/>
+    <connection from="e6" to="e3" fromLane="1" toLane="1" via=":gneJ16_7_0" tl="gneJ16" linkIndex="5" dir="s" state="O"/>
+    <connection from="e6" to="e1" fromLane="1" toLane="1" via=":gneJ16_8_0" tl="gneJ16" linkIndex="5" dir="l" state="o"/>
 
     <connection from=":gneJ16_0" to="e1" fromLane="0" toLane="0" dir="r" state="M"/>
     <connection from=":gneJ16_1" to="e7" fromLane="0" toLane="1" dir="s" state="M"/>
