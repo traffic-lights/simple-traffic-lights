@@ -10,7 +10,6 @@ sys.path.append(tools)
 
 from pathlib import Path
 
-# from collections import namedtuple
 from random import randrange
 
 import gym
@@ -35,7 +34,8 @@ VEHICLE_LENGTH = 5
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
-DEFAULT_SPAWN_PERIOD = 35
+DEFAULT_SPAWN_PERIOD = 10
+MAX_LANE_OCCUPANCY = 0.6
 
 DEFAULT_DURATION = 20.0
 MIN_DURATION = 5.0
@@ -47,7 +47,7 @@ REPLAY_FPS = 8
 
 
 class Lane:
-    def __init__(self, lane_id, route_id, spawn_period):
+    def __init__(self, lane_id, route_id, spawn_period=DEFAULT_SPAWN_PERIOD):
         super().__init__()
 
         # lane index from laneID
@@ -59,9 +59,15 @@ class Lane:
         self.next_timer = 0
 
     def add_car(self, current_time, car_ids):
-        if self.next_timer - current_time <= 0:
+        last_step_occupancy = traci.lane.getLastStepOccupancy(self.lane_id)
+        if (
+            self.next_timer - current_time <= 0
+            and last_step_occupancy <= MAX_LANE_OCCUPANCY
+        ):
             car_id = f"{self.route_id}_{car_ids}"
-            traci.vehicle.add(vehID=car_id, routeID=self.route_id, departLane=self.index)
+            traci.vehicle.add(
+                vehID=car_id, routeID=self.route_id, departLane=self.index
+            )
             self.next_timer = current_time + self.spawn_period
 
             return True
@@ -106,6 +112,7 @@ class SumoEnv(gym.Env):
         traci.start(self.sumo_cmd)
 
         self.tls_id = traci.trafficlight.getIDList()[0]
+        self.routes = traci.route.getIDList()
 
         self.observation_space = spaces.Space(shape=(2, DIM_H, DIM_W))
 
@@ -129,12 +136,18 @@ class SumoEnv(gym.Env):
         self.start_lanes = []
         self.car_ids = {}
 
-        for route in traci.route.getIDList():
-            start_edge = traci.route.getEdges(route)[0]
-            self.car_ids[route] = 0
-            for lane in traci.lane.getIDList():
-                if traci.lane.getEdgeID(lane) == start_edge:
-                    self.start_lanes.append(Lane(lane, route, DEFAULT_SPAWN_PERIOD))
+        for lane in traci.lane.getIDList():
+            start_edge = traci.lane.getEdgeID(lane)
+            links = traci.lane.getLinks(lane)
+
+            for link in links:
+                end_edge = traci.lane.getEdgeID(link[0])
+                for route in self.routes:
+                    route_edges = traci.route.getEdges(route)
+
+                    if start_edge in route_edges and end_edge in route_edges:
+                        self.car_ids[route] = 0
+                        self.start_lanes.append(Lane(lane, route))
 
     def step(self, action):
         reward = None
@@ -144,7 +157,6 @@ class SumoEnv(gym.Env):
 
         if penalted:
             reward -= 200
-            # return state, -100, True, info
 
         if traci.simulation.getMinExpectedNumber() == 0:
             return state, reward, True, info
@@ -180,7 +192,6 @@ class SumoEnv(gym.Env):
         arrived_cars = set()
 
         accumulated_travel_time = 0
-        accumulated_cars = 0
 
         step = 0
 
@@ -232,8 +243,6 @@ class SumoEnv(gym.Env):
                 accumulated_travel_time += time - self.traveling_cars[car]
                 del self.traveling_cars[car]
 
-                accumulated_cars += 1
-
             prev_phase = current_phase
             traci.simulationStep()
             step += 1
@@ -241,13 +250,12 @@ class SumoEnv(gym.Env):
         incomings = set()
         outgoings = set()
 
-        for tls in traci.trafficlight.getIDList():
-            for entry in traci.trafficlight.getControlledLinks(tls):
-                if entry:
-                    entry_tuple = entry[0]
-                    if entry_tuple:
-                        incomings.add(entry_tuple[0])
-                        outgoings.add(entry_tuple[1])
+        for entry in traci.trafficlight.getControlledLinks(self.tls_id):
+            if entry:
+                entry_tuple = entry[0]
+                if entry_tuple:
+                    incomings.add(entry_tuple[0])
+                    outgoings.add(entry_tuple[1])
 
         incomings_sum = 0
         outgoings_sum = 0
@@ -264,8 +272,6 @@ class SumoEnv(gym.Env):
 
         self.travel_time += accumulated_travel_time
 
-        # print(f'Pressure: {pressure}, incomings: {incomings_sum}, outgoings: {outgoings_sum}') debug :D
-
         return -pressure, pressure, penalted
 
     def reset(self):
@@ -276,7 +282,7 @@ class SumoEnv(gym.Env):
         self.travel_time = 0
         self.throughput = 0
 
-        for route in traci.route.getIDList():
+        for route in self.routes:
             self.car_ids[route] = 0
 
         for lane in self.start_lanes:
