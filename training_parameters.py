@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import Optimizer, Adam
 
 from memory import Memory
-from neural_net import SerializableModel, load_model_from_dict
+from neural_net import SerializableModel, load_model_from_dict, get_save_dict
 
 
 @dataclass
@@ -69,8 +69,8 @@ class TrainingState:
 
     def save(self, path):
         my_dict = {
-            'model': self.model.get_save_dict(),
-            'target_model': self.target_model.get_save_dict(),
+            'model': get_save_dict(self.model),
+            'target_model': get_save_dict(self.target_model),
             'optimizer': get_optimizer_dict(self.optimizer),
             'loss_fn': self.loss_fn,
             'replay_memory': self.replay_memory.get_save_dict(),
@@ -80,7 +80,7 @@ class TrainingState:
 
     @classmethod
     def from_path(cls, path):
-        my_dict = torch.load(path)
+        my_dict = torch.load(path, map_location='cpu')
         model = load_model_from_dict(my_dict['model'])
         target_model = load_model_from_dict(my_dict['target_model'])
 
