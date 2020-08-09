@@ -34,7 +34,6 @@ VEHICLE_LENGTH = 5
 DIM_W = int(NET_WIDTH / VEHICLE_LENGTH)
 DIM_H = int(NET_HEIGHT / VEHICLE_LENGTH)
 
-DEFAULT_SPAWN_PERIOD = 10
 MAX_LANE_OCCUPANCY = 0.6
 
 DEFAULT_DURATION = 20.0
@@ -47,8 +46,10 @@ REPLAY_FPS = 8
 
 
 class Lane:
-    def __init__(self, lane_id, route_id, spawn_period=DEFAULT_SPAWN_PERIOD):
+    def __init__(self, lane_id, route_id, spawn_period):
         super().__init__()
+        
+        assert spawn_period > 0, 'negative spawn period'
 
         # lane index from laneID
         self.lane_id = lane_id
@@ -139,15 +140,21 @@ class SumoEnv(gym.Env):
         for lane in traci.lane.getIDList():
             start_edge = traci.lane.getEdgeID(lane)
             links = traci.lane.getLinks(lane)
+        
+            spawn_period = traci.lane.getParameter(lane, "period")
+            try:
+                spawn_period = int(spawn_period)
+            except ValueError:
+                spawn_period = None
 
             for link in links:
                 end_edge = traci.lane.getEdgeID(link[0])
                 for route in self.routes:
                     route_edges = traci.route.getEdges(route)
-
                     if start_edge in route_edges and end_edge in route_edges:
                         self.car_ids[route] = 0
-                        self.start_lanes.append(Lane(lane, route))
+                        if spawn_period is not None:
+                            self.start_lanes.append(Lane(lane, route, spawn_period))
 
     def step(self, action):
         reward = None

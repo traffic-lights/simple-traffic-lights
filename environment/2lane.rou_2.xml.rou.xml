@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on nie, 9 sie 2020, 15:11:03 by Eclipse SUMO netedit Version 1.6.0
+<!-- generated on wto, 4 sie 2020, 20:26:02 by Eclipse SUMO netedit Version 1.6.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
@@ -30,7 +30,7 @@
     </pedestrian>
 
     <netedit>
-        <route-files value="/home/marwin34/dev/simple-traffic-lights/environment/2lane.rou.xml"/>
+        <route-files value="/home/marwin34/dev/simple-traffic-lights/environment/2lane.rou_2.xml.rou.xml"/>
     </netedit>
 
     <report>
@@ -46,7 +46,9 @@
     <route edges="e6 e5" color="yellow" id="route_10"/>
     <route edges="e6 e3" color="yellow" id="route_11"/>
     <route edges="e0 e3" color="yellow" id="route_2"/>
-    <route edges="e4 e1" color="yellow" id="route_3"/>
+    <route edges="e4 e1" color="yellow" id="route_3">
+        <param key="spawn_timer" value="10"/>
+    </route>
     <route edges="e4 e7" color="yellow" id="route_4"/>
     <route edges="e4 e3" color="yellow" id="route_5"/>
     <route edges="e2 e1" color="yellow" id="route_6"/>
