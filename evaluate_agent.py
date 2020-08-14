@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 
 from environment.env import SumoEnv
+from environment.simple_env import SimpleEnv
 from training_parameters import TrainingState
 
 state = TrainingState.from_path(
@@ -10,7 +11,7 @@ state = TrainingState.from_path(
 
 model = state.model
 
-with SumoEnv(render=True, save_replay=True) as env:
+with SimpleEnv(render=True, save_replay=True) as env:
     state = env.reset()
     ep_len = 0
     done = False
