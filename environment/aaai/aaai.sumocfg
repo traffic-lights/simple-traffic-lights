@@ -1,0 +1,11 @@
+<configuration>
+    <gui_only>
+        <start value="true"/>
+        <quit-on-end value="true"/>
+    </gui_only>
+
+    <input>
+        <net-file value="aaai.net.xml" />
+        <route-files value="aaai.rou.xml" />
+    </input>
+</configuration>
