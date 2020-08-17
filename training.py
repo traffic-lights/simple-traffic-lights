@@ -8,10 +8,9 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam
 
-from environment.env import SumoEnv
 from environment.simple_env import SimpleEnv
 from memory import Memory
-from neural_net import DQN
+from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
 from training_parameters import TrainingParameters, TrainingState
