@@ -118,7 +118,7 @@ def main_train():
 
     rewards_queue = deque(maxlen=300)
 
-    save_root = Path('saved', params.model_name)
+    save_root = Path('saved', 'old_models', params.model_name)
 
     state_save_root = Path(save_root, 'states')
     state_save_root.mkdir(exist_ok=True, parents=True)
