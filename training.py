@@ -9,6 +9,7 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environment.env import SumoEnv
+from environment.simple_env import SimpleEnv
 from memory import Memory
 from neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
@@ -117,7 +118,7 @@ def main_train():
 
     rewards_queue = deque(maxlen=300)
 
-    save_root = Path('saved', params.model_name)
+    save_root = Path('saved', 'old_models', params.model_name)
 
     state_save_root = Path(save_root, 'states')
     state_save_root.mkdir(exist_ok=True, parents=True)
@@ -125,7 +126,7 @@ def main_train():
     tensorboard_save_root = Path(save_root, 'tensorboard')
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     writer = SummaryWriter(tensorboard_save_root)
-    with SumoEnv(render=False) as env:
+    with SimpleEnv(render=False) as env:
 
         while params.current_episode < params.num_episodes:
 
