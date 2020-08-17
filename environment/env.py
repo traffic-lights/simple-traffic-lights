@@ -40,9 +40,10 @@ class Lane:
 
         assert spawn_period > 0, 'negative spawn period'
 
+        edge_id = traci.lane.getEdgeID(lane_id)
         # lane index from laneID
         self.lane_id = lane_id
-        self.index = int(re.sub(r".+_", "", lane_id))
+        self.index = int(re.sub(f'{edge_id}_', "", lane_id))
         self.route_id = route_id
         self.spawn_period = spawn_period
 
