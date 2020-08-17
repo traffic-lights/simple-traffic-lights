@@ -7,13 +7,13 @@ from gym import error, spaces, utils
 import traci
 import traci.constants as tc
 
-TRAFFICLIGHTS_PHASES = 4
+TRAFFICLIGHTS_PHASES = 8
 LIGHT_DURATION = 10
 
 
 class AaaiEnv(SumoEnv):
     def __init__(self,
-                 config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
+                 config_file=Path(PROJECT_ROOT, "environment", "aaai/aaai.sumocfg"),
                  replay_folder=Path(PROJECT_ROOT, "replays"),
                  save_replay=False,
                  render=False,

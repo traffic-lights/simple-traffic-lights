@@ -42,7 +42,7 @@ class Lane:
 
         # lane index from laneID
         self.lane_id = lane_id
-        self.index = int(re.sub(r"e\d+_", "", lane_id))
+        self.index = int(re.sub(r".+_", "", lane_id))
         self.route_id = route_id
         self.spawn_period = spawn_period
 
@@ -76,7 +76,7 @@ class SumoEnv(gym.Env):
 
     def __init__(
             self,
-            config_file=Path(PROJECT_ROOT, "environment", "2lane.sumocfg"),
+            config_file=Path(PROJECT_ROOT, "environment", "2lane/2lane.sumocfg"),
             replay_folder=Path(PROJECT_ROOT, "replays"),
             save_replay=False,
             render=False,
