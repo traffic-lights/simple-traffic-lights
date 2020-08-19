@@ -2,9 +2,8 @@ from pathlib import Path
 
 import torch
 
-from environment.env import SumoEnv
 from environment.simple_env import SimpleEnv
-from training_parameters import TrainingState
+from trainings.training_parameters import TrainingState
 
 state = TrainingState.from_path(
     Path('saved', 'ddqn_2020-07-18.14-21-48-424555', 'states', 'ep_30_ddqn_2020-07-18.14-21-48-424555.tar'))

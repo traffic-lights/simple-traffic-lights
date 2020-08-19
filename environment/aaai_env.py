@@ -25,8 +25,8 @@ class AaaiEnv(SumoEnv):
             render=render
         )
 
-        self.observation_space = spaces.Space(shape=(TRAFFICLIGHTS_PHASES + 1,))
-        self.action_space = spaces.Discrete(1)
+        self.observation_space = spaces.Space(shape=(2 * TRAFFICLIGHTS_PHASES + 1,))
+        self.action_space = spaces.Discrete(TRAFFICLIGHTS_PHASES)
         self.tls_id = traci.trafficlight.getIDList()[0]
         self.light_duration = light_duration
         self.previous_action = 0

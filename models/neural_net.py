@@ -1,6 +1,13 @@
 from torch import nn
 
-from models.utils import SerializableModel
+
+class SerializableModel(nn.Module):
+    def get_save_dict(self):
+        raise NotImplementedError
+
+    @classmethod
+    def load_from_dict(cls, dict_to_load):
+        raise NotImplementedError
 
 
 class DQN(SerializableModel):
@@ -72,3 +79,52 @@ class DQN(SerializableModel):
         return qvals
 
 
+class SimpleLinear(SerializableModel):
+
+    def get_save_dict(self):
+        pass
+
+    @classmethod
+    def load_from_dict(cls, dict_to_load):
+        pass
+
+    def __init__(self, input_params, output_params, linear_depth=90):
+        super().__init__()
+
+        self.linear = nn.Linear(input_params, linear_depth)
+
+        self.value_net = nn.Sequential(
+            nn.Linear(linear_depth, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, 1)
+        )
+
+        self.advantage_net = nn.Sequential(
+            nn.Linear(linear_depth, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, output_params)
+        )
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        x = x.view(batch_size, -1)
+        x = self.linear(x)
+
+        value = self.value_net(x)
+        advantages = self.advantage_net(x)
+
+        qvals = value + (advantages - advantages.mean())
+
+        return qvals
+
+
+class Frap(SerializableModel):
+    def get_save_dict(self):
+        pass
+
+    @classmethod
+    def load_from_dict(cls, dict_to_load):
+        pass
+
+    def __init__(self):
+        super().__init__()

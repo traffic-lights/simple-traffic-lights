@@ -5,7 +5,8 @@ from torch import nn
 from torch.optim import Optimizer, Adam
 
 from memory import Memory
-from models.utils import SerializableModel, get_save_dict, load_model_from_dict
+from models.utils import get_save_dict, load_model_from_dict
+from models.neural_net import SerializableModel
 
 
 @dataclass
