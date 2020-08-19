@@ -8,13 +8,12 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam
 
-from environment.env import SumoEnv
 from environment.simple_env import SimpleEnv
 from memory import Memory
-from neural_net import DQN
+from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
-from training_parameters import TrainingParameters, TrainingState
+from trainings.training_parameters import TrainingParameters, TrainingState
 
 
 def train_all_batches(memory, net, target_net, optimizer, loss_fn,
@@ -62,7 +61,7 @@ def test_model(net, env, max_ep_len, device, should_random=False):
                 action = env.action_space.sample()
             else:
                 tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                action = net(tensor_state).max(1)[1][0].cpu().detach().numpy()
+                action = net(tensor_state).max(1)[1].cpu().detach().numpy()[0]
             state, reward, done, info = env.step(action)
             rewards.append(reward)
             ep_len += 1
@@ -106,8 +105,7 @@ def get_new_training():
     )
 
 
-def main_train():
-    training_state = get_new_training()
+def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Path('saved', 'old_models')):
     params = training_state.training_parameters
 
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -118,7 +116,7 @@ def main_train():
 
     rewards_queue = deque(maxlen=300)
 
-    save_root = Path('saved', 'old_models', params.model_name)
+    save_root = Path(save_root, params.model_name)
 
     state_save_root = Path(save_root, 'states')
     state_save_root.mkdir(exist_ok=True, parents=True)
@@ -126,7 +124,7 @@ def main_train():
     tensorboard_save_root = Path(save_root, 'tensorboard')
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     writer = SummaryWriter(tensorboard_save_root)
-    with SimpleEnv(render=False) as env:
+    with env_class(render=False) as env:
 
         while params.current_episode < params.num_episodes:
 
@@ -142,10 +140,9 @@ def main_train():
 
                 else:
                     tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                    action = training_state.model(tensor_state).max(1)[1][0].cpu().detach().numpy()
+                    action = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy()[0].item()
 
                 next_state, reward, done, info = env.step(action)
-
                 rewards_queue.append(reward)
                 print(params.total_steps, np.mean(rewards_queue))
 
@@ -200,4 +197,4 @@ def main_train():
 
 
 if __name__ == '__main__':
-    main_train()
+    main_train(get_new_training())

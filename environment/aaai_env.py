@@ -7,13 +7,14 @@ from gym import error, spaces, utils
 import traci
 import traci.constants as tc
 
+TRAFFIC_MOVEMENTS = 12
 TRAFFICLIGHTS_PHASES = 8
 LIGHT_DURATION = 10
 
 
 class AaaiEnv(SumoEnv):
     def __init__(self,
-                 config_file=Path(PROJECT_ROOT, "environment", "aaai/aaai.sumocfg"),
+                 config_file=Path(PROJECT_ROOT, "environment", "aaai", "aaai.sumocfg"),
                  replay_folder=Path(PROJECT_ROOT, "replays"),
                  save_replay=False,
                  render=False,
@@ -25,8 +26,8 @@ class AaaiEnv(SumoEnv):
             render=render
         )
 
-        self.observation_space = spaces.Space(shape=(TRAFFICLIGHTS_PHASES + 1,))
-        self.action_space = spaces.Discrete(1)
+        self.observation_space = spaces.Space(shape=(TRAFFIC_MOVEMENTS + 1,))
+        self.action_space = spaces.Discrete(TRAFFICLIGHTS_PHASES)
         self.tls_id = traci.trafficlight.getIDList()[0]
         self.light_duration = light_duration
         self.previous_action = 0

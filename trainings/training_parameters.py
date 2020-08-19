@@ -5,7 +5,8 @@ from torch import nn
 from torch.optim import Optimizer, Adam
 
 from memory import Memory
-from neural_net import SerializableModel, load_model_from_dict, get_save_dict
+from models.utils import get_save_dict, load_model_from_dict
+from models.neural_net import SerializableModel
 
 
 @dataclass
@@ -53,6 +54,7 @@ optim_class_mapper = {
 
 
 def load_optim_from_dict(dict_to_load, model: nn.Module):
+    # print(dict_to_load)
     my_otpim = optim_class_mapper[dict_to_load['optim_class_name']](model.parameters())
     my_otpim.load_state_dict(dict_to_load['optim_save_dict'])
     return my_otpim

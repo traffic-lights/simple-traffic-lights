@@ -2,23 +2,24 @@ from pathlib import Path
 
 import torch
 
-from environment.env import SumoEnv
+from environment.aaai_env import AaaiEnv
 from environment.simple_env import SimpleEnv
-from training_parameters import TrainingState
+from trainings.training_parameters import TrainingState
 
 state = TrainingState.from_path(
-    Path('saved', 'ddqn_2020-07-18.14-21-48-424555', 'states', 'ep_30_ddqn_2020-07-18.14-21-48-424555.tar'))
+    Path('saved', 'aaai', 'simple', 'simple_2020-08-19.13-08-55-996950', 'states',
+         'ep_40_simple_2020-08-19.13-08-55-996950.tar'))
 
 model = state.model
 
-with SimpleEnv(render=True, save_replay=True) as env:
+with AaaiEnv(render=True, save_replay=True) as env:
     state = env.reset()
     ep_len = 0
     done = False
     while not done:
         ep_len += 1
         tensor_state = torch.tensor([state], dtype=torch.float32)
-        action = model(tensor_state).max(1)[1][0].cpu().detach().numpy()
+        action = model(tensor_state).max(1)[1][0].cpu().detach().numpy().item()
 
         next_state, reward, done, info = env.step(action)
 
