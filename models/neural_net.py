@@ -3,26 +3,31 @@ from torch import nn
 
 class SerializableModel(nn.Module):
     def get_save_dict(self):
+        return {
+            'init_params': self._get_init_params(),
+            'state_dict': self.state_dict()
+        }
+
+    def _get_init_params(self):
         raise NotImplementedError
 
     @classmethod
     def load_from_dict(cls, dict_to_load):
-        raise NotImplementedError
+        model = cls(**dict_to_load['init_params'])
+        model.load_state_dict(dict_to_load['state_dict'])
+        return model
 
 
 class DQN(SerializableModel):
 
-    def get_save_dict(self):
-        return {
-            'init_params': {'outputs': self.outputs},
-            'state_dict': self.state_dict()
-        }
+    def _get_init_params(self):
+        return {'outputs': self.outputs}
 
-    @classmethod
-    def load_from_dict(cls, dict_to_load):
-        dqn = DQN(**dict_to_load['init_params'])
-        dqn.load_state_dict(dict_to_load['state_dict'])
-        return dqn
+    # @classmethod
+    # def load_from_dict(cls, dict_to_load):
+    #     dqn = DQN(**dict_to_load['init_params'])
+    #     dqn.load_state_dict(dict_to_load['state_dict'])
+    #     return dqn
 
     def __init__(self, outputs=9):
         super(DQN, self).__init__()
@@ -81,15 +86,18 @@ class DQN(SerializableModel):
 
 class SimpleLinear(SerializableModel):
 
-    def get_save_dict(self):
-        pass
-
-    @classmethod
-    def load_from_dict(cls, dict_to_load):
-        pass
+    def _get_init_params(self):
+        return {
+            'input_params': self.input_params,
+            'output_params': self.output_params,
+            'linear_depth': self.linear_depth
+        }
 
     def __init__(self, input_params, output_params, linear_depth=90):
         super().__init__()
+        self.input_params = input_params
+        self.output_params = output_params
+        self.linear_depth = linear_depth
 
         self.linear = nn.Linear(input_params, linear_depth)
 
@@ -119,11 +127,8 @@ class SimpleLinear(SerializableModel):
 
 
 class Frap(SerializableModel):
-    def get_save_dict(self):
-        pass
 
-    @classmethod
-    def load_from_dict(cls, dict_to_load):
+    def _get_init_params(self):
         pass
 
     def __init__(self):

@@ -140,10 +140,9 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
 
                 else:
                     tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                    action = training_state.model(tensor_state).max(1)[1][0].cpu().detach().numpy()
+                    action = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy()[0].item()
 
                 next_state, reward, done, info = env.step(action)
-
                 rewards_queue.append(reward)
                 print(params.total_steps, np.mean(rewards_queue))
 

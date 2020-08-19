@@ -54,6 +54,7 @@ optim_class_mapper = {
 
 
 def load_optim_from_dict(dict_to_load, model: nn.Module):
+    # print(dict_to_load)
     my_otpim = optim_class_mapper[dict_to_load['optim_class_name']](model.parameters())
     my_otpim.load_state_dict(dict_to_load['optim_save_dict'])
     return my_otpim
