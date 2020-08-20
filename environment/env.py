@@ -38,7 +38,7 @@ class Lane:
     def __init__(self, lane_id, route_id, spawn_period=DEFAULT_SPAWN_PERIOD):
         super().__init__()
 
-        assert spawn_period > 0, 'negative spawn period'
+        assert spawn_period >= 0, 'negative spawn period'
 
         edge_id = traci.lane.getEdgeID(lane_id)
         # lane index from laneID
@@ -118,6 +118,9 @@ class SumoEnv(gym.Env):
             try:
                 spawn_period = int(spawn_period)
             except ValueError:
+                if spawn_period != "None" and spawn_period != "":
+                    print(f'bad period value: {spawn_period}')
+
                 spawn_period = None
 
             for link in links:
