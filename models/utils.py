@@ -1,4 +1,5 @@
-from models.neural_net import DQN, SimpleLinear, Frap
+from models.neural_net import DQN, SimpleLinear
+from models.frap import Frap
 
 registered_models = [DQN, SimpleLinear, Frap]
 model_types_names = {

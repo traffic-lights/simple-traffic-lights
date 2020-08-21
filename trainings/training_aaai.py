@@ -6,6 +6,7 @@ from torch.optim import Adam
 
 from environment.aaai_env import AaaiEnv
 from memory import Memory
+from models.frap import Frap
 from models.neural_net import SimpleLinear
 from trainings.training import get_model_name, main_train
 from trainings.training_parameters import TrainingParameters, TrainingState
@@ -43,9 +44,40 @@ def get_new_training():
     )
 
 
+def get_frap_training():
+    model_name = get_model_name('frap')
+    training_param = TrainingParameters(
+        model_name,
+        pre_train_steps=1500,
+        tau=0.001,
+        lr=0.0001,
+        save_freq=5
+    )
+
+    memory = Memory(training_param.memory_size)
+
+    net = Frap(32, 16, 16, 2, 16)
+    target_net = Frap(32, 16, 16, 2, 16)
+
+    target_net.eval()
+
+    target_net.load_state_dict(net.state_dict())
+    optimizer = Adam(net.parameters(), lr=training_param.lr)
+
+    loss_fn = MSELoss()
+    return TrainingState(
+        training_param,
+        net,
+        target_net,
+        optimizer,
+        loss_fn,
+        memory
+    )
+
+
 def train_aaai():
-    main_train(get_new_training(), AaaiEnv, Path('saved', 'aaai', 'simple'))
+    main_train(get_frap_training(), AaaiEnv, Path('saved', 'aaai', 'frap'))
 
 
 if __name__ == '__main__':
-    main_train(get_new_training(), AaaiEnv, Path('saved', 'aaai', 'simple'))
+    main_train(get_frap_training(), AaaiEnv, Path('saved', 'aaai', 'frap'))

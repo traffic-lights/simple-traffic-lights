@@ -7,15 +7,18 @@ from environment.simple_env import SimpleEnv
 from trainings.training_parameters import TrainingState
 
 state = TrainingState.from_path(
-    Path('saved', 'aaai', 'simple', 'simple_2020-08-19.13-08-55-996950', 'states',
-         'ep_40_simple_2020-08-19.13-08-55-996950.tar'))
+    Path('saved', 'aaai', 'frap', 'frap_2020-08-21.14-14-20-289028', 'states',
+         'ep_10_frap_2020-08-21.14-14-20-289028.tar'))
 
 model = state.model
 
-with AaaiEnv(render=True, save_replay=True) as env:
+with AaaiEnv(render=True, save_replay=False) as env:
     state = env.reset()
     ep_len = 0
     done = False
+
+    prev_action = 0
+
     while not done:
         ep_len += 1
         tensor_state = torch.tensor([state], dtype=torch.float32)
@@ -24,5 +27,8 @@ with AaaiEnv(render=True, save_replay=True) as env:
         next_state, reward, done, info = env.step(action)
 
         state = next_state
-
-        print(env.get_throughput())
+        if prev_action == action:
+            print("takie samo", action)
+        else:
+            print("rozne", action)
+        prev_action = action

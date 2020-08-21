@@ -46,7 +46,6 @@ class AaaiEnv(SumoEnv):
                     my_pressure = traci.lane.getLastStepVehicleNumber(
                         entry_tuple[0]) - traci.lane.getLastStepVehicleNumber(entry_tuple[1])
                     pressures.append(my_pressure)
-
         return pressures
 
     def _take_action(self, action):
