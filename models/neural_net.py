@@ -126,10 +126,3 @@ class SimpleLinear(SerializableModel):
         return qvals
 
 
-class Frap(SerializableModel):
-
-    def _get_init_params(self):
-        pass
-
-    def __init__(self):
-        super().__init__()
