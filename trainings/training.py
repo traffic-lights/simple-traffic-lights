@@ -9,7 +9,7 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environment.simple_env import SimpleEnv
-from memory import Memory
+from memory.prioritized_memory import Memory
 from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,8 +31,14 @@ def train_all_batches(memory, net, target_net, optimizer, loss_fn,
 
         my_value = net(batch['state']).gather(1, batch['action'].unsqueeze(-1))
 
+        errors = torch.abs(actual_value - my_value).cpu().detach().numpy()
+
+        # update priority
+        for i, idx in enumerate(batch['id']):
+            memory.update(idx, errors[i])
+
         optimizer.zero_grad()
-        loss = loss_fn(actual_value, my_value)
+        loss = (batch['is_weight'] * loss_fn(actual_value, my_value)).mean()
         losses.append(loss.item())
 
         loss.backward()
@@ -146,7 +152,7 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
                 rewards_queue.append(reward)
                 print(params.total_steps, np.mean(rewards_queue))
 
-                training_state.replay_memory.add_experience(state, action, reward, next_state, done)
+                training_state.replay_memory.add_experience(training_state, state, action, reward, next_state, done, device)
                 state = next_state
 
                 if params.total_steps > params.pre_train_steps:
