@@ -5,7 +5,7 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environment.aaai_env import AaaiEnv
-from memory import Memory
+from memory.prioritized_memory import Memory
 from models.neural_net import SimpleLinear
 from trainings.training import get_model_name, main_train
 from trainings.training_parameters import TrainingParameters, TrainingState

@@ -27,7 +27,7 @@ class PER:  # stored as ( s, a, r, s_ ) in SumTree
     def sample(self, n):
         batch = []
         idxs = []
-        segment = self.tree.total() / n
+        segment = self.tree.total() / (n + 1)
         priorities = []
 
         self.beta = np.min([1., self.beta + self.beta_increment_per_sampling])
