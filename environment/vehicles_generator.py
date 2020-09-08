@@ -90,7 +90,10 @@ class XMLGenerator(VehiclesGenerator):
     lanes_periods = {}
 
     @classmethod
-    def add_lane(cls, lane):
+    def add_lane(cls, lane, active):
+        if not active:
+            return
+
         spawn_period = traci.lane.getParameter(lane, "period")
 
         try:
@@ -120,6 +123,31 @@ class XMLGenerator(VehiclesGenerator):
         pass
 
 
+class ConstGenerator(VehiclesGenerator):
+    lanes_periods = {}
+
+    @classmethod
+    def add_lane(cls, lane, active, period):
+        if not active:
+            return
+
+        cls.lanes[lane] = Lane(lane)
+        cls.lanes_periods[lane] = period
+
+    @classmethod
+    def generate_vehicles(cls, time):
+        cls._update(time)
+
+        for lane_id, lane in cls.lanes.items():
+            period = cls.lanes_periods[lane_id]
+            lane.add_car(time, period)
+            # print(f"lane: {lane_id} period: {period}")
+
+    @classmethod
+    def _update(cls, time):
+        pass
+
+
 class SinusoidalGenerator(VehiclesGenerator):
     last_time = 0
     time_sum = 0
@@ -127,7 +155,10 @@ class SinusoidalGenerator(VehiclesGenerator):
     sin_parameters = {}
 
     @classmethod
-    def add_lane(cls, lane, amplitude, multiplier, start, min):
+    def add_lane(cls, lane, active, amplitude, multiplier, start, min):
+        if not active:
+            return
+
         cls.lanes[lane] = Lane(lane)
         cls.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
 

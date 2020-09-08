@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from environment.env import SumoEnv
+from environment.configs_loader import load_from_file
 from settings import PROJECT_ROOT
 from random import randrange
 
@@ -27,18 +28,11 @@ TRAFFICLIGHTS_PHASES = 4
 
 
 class SimpleEnv(SumoEnv):
-    def __init__(
-            self,
-            config_file=Path(PROJECT_ROOT, "environment", "2lane/2lane.sumocfg"),
-            replay_folder=Path(PROJECT_ROOT, "replays"),
-            save_replay=False,
-            render=False,
-    ):
+    def __init__(self, save_replay=False, render=False):
+        env_configs = load_from_file("2lane")
+
         super().__init__(
-            config_file=config_file,
-            replay_folder=replay_folder,
-            save_replay=save_replay,
-            render=render
+            env_configs=env_configs, save_replay=save_replay, render=render
         )
 
         self.observation_space = spaces.Space(shape=(2, DIM_H, DIM_W))
@@ -112,8 +106,8 @@ class SimpleEnv(SumoEnv):
                     self.phases_durations[phase_id] += action_tuple[1]
 
                     if (
-                            self.phases_durations[phase_id] < MIN_DURATION
-                            or self.phases_durations[phase_id] > MAX_DURATION
+                        self.phases_durations[phase_id] < MIN_DURATION
+                        or self.phases_durations[phase_id] > MAX_DURATION
                     ):
                         penalted = True
 

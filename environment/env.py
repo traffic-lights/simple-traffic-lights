@@ -27,7 +27,11 @@ import datetime
 
 from settings import PROJECT_ROOT
 
-from environment.vehicles_generator import SinusoidalGenerator, XMLGenerator
+from environment.vehicles_generator import (
+    SinusoidalGenerator,
+    XMLGenerator,
+    ConstGenerator,
+)
 
 REPLAY_FPS = 8
 
@@ -36,13 +40,13 @@ class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-        self,
-        config_file=Path(PROJECT_ROOT, "environment", "2lane/2lane.sumocfg"),
-        replay_folder=Path(PROJECT_ROOT, "replays"),
-        save_replay=False,
-        render=False,
+        self, env_configs, save_replay=False, render=False,
     ):
         super().__init__()
+
+        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])
+        replay_folder = Path(PROJECT_ROOT, env_configs["replay_folder"])
+        generator_type = env_configs["vehicle_generator"]["type"]
 
         sumo_binary = ""
         if render:
@@ -64,24 +68,20 @@ class SumoEnv(gym.Env):
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
         self.replay_folder = replay_folder
-        
-        # set vehicle generator
-        # self.vehicle_generator = XMLGenerator
-        self.vehicle_generator = SinusoidalGenerator
 
-        # add lanes to generator
-        self.vehicle_generator.add_lane("gneE15_0", 10, 1 / 10, 0, 5)
-        self.vehicle_generator.add_lane("gneE15_1", 15, 1, 0.5, 8)
-        self.vehicle_generator.add_lane("gneE15_2", 25, 10, 1.5, 10)
-        self.vehicle_generator.add_lane("gneE17_0", 25, 1, 1.5, 10)
-        self.vehicle_generator.add_lane("gneE17_1", 10, 1 / 10, 0, 4)
-        self.vehicle_generator.add_lane("gneE17_2", 15, 10, 1, 7)
-        self.vehicle_generator.add_lane("gneE19_0", 30, 1, 1, 1)
-        self.vehicle_generator.add_lane("gneE19_1", 25, 10, 1, 5)
-        self.vehicle_generator.add_lane("gneE19_2", 10, 1, 0.25, 6)
-        self.vehicle_generator.add_lane("gneE21_0", 10, 20, 1.75, 11)
-        self.vehicle_generator.add_lane("gneE21_1", 15, 1 / 200, 0.5, 15)
-        self.vehicle_generator.add_lane("gneE21_2", 30, 1, 1.5, 5)
+        if generator_type == "const":
+            self.vehicle_generator = ConstGenerator
+        elif generator_type == "sin":
+            self.vehicle_generator = SinusoidalGenerator
+            generator_lanes = env_configs["vehicle_generator"]["lanes"]
+        else:
+            print(f"{generator_type} unknown generator type")
+            sys.exit(-1)
+
+        generator_lanes = env_configs["vehicle_generator"]["lanes"]
+
+        for lane in generator_lanes:
+            self.vehicle_generator.add_lane(**lane)
 
     def step(self, action):
         reward, info = self._take_action(action)
