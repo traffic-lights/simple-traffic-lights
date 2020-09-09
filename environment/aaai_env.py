@@ -2,6 +2,7 @@ from pathlib import Path
 
 from environment.env import SumoEnv
 from settings import PROJECT_ROOT
+from environment.configs_loader import load_from_file
 
 from gym import error, spaces, utils
 import traci
@@ -13,17 +14,11 @@ LIGHT_DURATION = 10
 
 
 class AaaiEnv(SumoEnv):
-    def __init__(self,
-                 config_file=Path(PROJECT_ROOT, "environment", "aaai", "aaai.sumocfg"),
-                 replay_folder=Path(PROJECT_ROOT, "replays"),
-                 save_replay=False,
-                 render=False,
-                 light_duration=LIGHT_DURATION):
+    def __init__(self, save_replay=False, render=False, light_duration=LIGHT_DURATION):
+        env_configs = load_from_file("aaai")
+
         super().__init__(
-            config_file=config_file,
-            replay_folder=replay_folder,
-            save_replay=save_replay,
-            render=render
+            env_configs=env_configs, save_replay=save_replay, render=render
         )
 
         self.observation_space = spaces.Space(shape=(TRAFFIC_MOVEMENTS + 1,))
@@ -44,7 +39,8 @@ class AaaiEnv(SumoEnv):
                 entry_tuple = entry[0]
                 if entry_tuple:
                     my_pressure = traci.lane.getLastStepVehicleNumber(
-                        entry_tuple[0]) - traci.lane.getLastStepVehicleNumber(entry_tuple[1])
+                        entry_tuple[0]
+                    ) - traci.lane.getLastStepVehicleNumber(entry_tuple[1])
                     pressures.append(my_pressure)
         return pressures
 
