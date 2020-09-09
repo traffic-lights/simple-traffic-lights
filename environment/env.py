@@ -44,9 +44,7 @@ class SumoEnv(gym.Env):
     ):
         super().__init__()
 
-        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])
-        replay_folder = Path(PROJECT_ROOT, env_configs["replay_folder"])
-        generator_type = env_configs["vehicle_generator"]["type"]
+        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])        
 
         sumo_binary = ""
         if render:
@@ -67,8 +65,9 @@ class SumoEnv(gym.Env):
         traci.start(self.sumo_cmd)
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
-        self.replay_folder = replay_folder
+        self.replay_folder = Path(PROJECT_ROOT, env_configs["replay_folder"])
 
+        generator_type = env_configs["vehicle_generator"]["type"]
         if generator_type == "const":
             self.vehicle_generator = ConstGenerator
         elif generator_type == "sin":
