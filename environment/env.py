@@ -2,7 +2,9 @@ import os, sys
 
 DEFAULT_SUMO_PATH = os.path.join("/usr", "share", "sumo")
 if "SUMO_HOME" not in os.environ:
+    print("sumo home not in path")
     tools = os.path.join(DEFAULT_SUMO_PATH, "tools")
+    os.environ['SUMO_HOME'] = DEFAULT_SUMO_PATH
 else:
     tools = os.path.join(os.environ["SUMO_HOME"], "tools")
 

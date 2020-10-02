@@ -5,7 +5,7 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environment.aaai_env import AaaiEnv
-from memory import Memory
+from memory.prioritized_memory import Memory
 from models.frap import Frap
 from models.neural_net import SimpleLinear
 from trainings.training import get_model_name, main_train
@@ -51,7 +51,7 @@ def get_frap_training():
         pre_train_steps=1500,
         tau=0.001,
         lr=0.0001,
-        save_freq=5
+        save_freq=1
     )
 
     memory = Memory(training_param.memory_size)
@@ -80,4 +80,4 @@ def train_aaai():
 
 
 if __name__ == '__main__':
-    main_train(get_frap_training(), AaaiEnv, Path('saved', 'aaai', 'frap'))
+    train_aaai()

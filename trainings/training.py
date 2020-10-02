@@ -9,7 +9,8 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environment.simple_env import SimpleEnv
-from memory import Memory
+from memory.prioritized_memory import Memory
+from models.frap import Frap
 from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,8 +32,14 @@ def train_all_batches(memory, net, target_net, optimizer, loss_fn,
 
         my_value = net(batch['state']).gather(1, batch['action'].unsqueeze(-1))
 
+        errors = torch.abs(actual_value - my_value).cpu().detach().numpy()
+
+        # update priority
+        for i, idx in enumerate(batch['id']):
+            memory.update(idx, errors[i])
+
         optimizer.zero_grad()
-        loss = loss_fn(actual_value, my_value)
+        loss = (batch['is_weight'] * loss_fn(actual_value, my_value)).mean()
         losses.append(loss.item())
 
         loss.backward()
@@ -77,34 +84,6 @@ def get_model_name(suffix):
     return suffix + '_' + datetime.now().strftime("%Y-%m-%d.%H-%M-%S-%f")
 
 
-def load_training_path(path):
-    pass
-
-
-def get_new_training():
-    model_name = get_model_name('ddqn')
-    training_param = TrainingParameters(model_name)
-
-    memory = Memory(training_param.memory_size)
-
-    net = DQN()
-    target_net = DQN()
-    target_net.eval()
-
-    target_net.load_state_dict(net.state_dict())
-    optimizer = Adam(net.parameters(), lr=training_param.lr)
-
-    loss_fn = MSELoss()
-    return TrainingState(
-        training_param,
-        net,
-        target_net,
-        optimizer,
-        loss_fn,
-        memory
-    )
-
-
 def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Path('saved', 'old_models')):
     params = training_state.training_parameters
 
@@ -121,8 +100,10 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
     state_save_root = Path(save_root, 'states')
     state_save_root.mkdir(exist_ok=True, parents=True)
 
+
     tensorboard_save_root = Path(save_root, 'tensorboard')
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
+    print(tensorboard_save_root.resolve())
     writer = SummaryWriter(tensorboard_save_root)
     with env_class(render=False) as env:
 
@@ -146,7 +127,8 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
                 rewards_queue.append(reward)
                 print(params.total_steps, np.mean(rewards_queue))
 
-                training_state.replay_memory.add_experience(state, action, reward, next_state, done)
+                training_state.replay_memory.add_experience(training_state, state, action, reward, next_state, done,
+                                                            device)
                 state = next_state
 
                 if params.total_steps > params.pre_train_steps:
@@ -159,7 +141,6 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
                             training_state.model, training_state.target_model,
                             training_state.optimizer,
                             training_state.loss_fn, params.batch_size, params.disc_factor, device=device)
-
                         writer.add_scalar('Train/Loss', mean_loss, params.total_steps)
 
                     if params.total_steps % params.target_update_freq == 0:
@@ -194,7 +175,3 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
         training_state.save(
             Path(state_save_root, 'final_{}.tar'.format(params.current_episode, params.model_name))
         )
-
-
-if __name__ == '__main__':
-    main_train(get_new_training())

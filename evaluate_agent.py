@@ -7,8 +7,8 @@ from environment.simple_env import SimpleEnv
 from trainings.training_parameters import TrainingState
 
 state = TrainingState.from_path(
-    Path('saved', 'aaai', 'frap', 'frap_2020-08-21.14-14-20-289028', 'states',
-         'ep_10_frap_2020-08-21.14-14-20-289028.tar'))
+    Path('saved', 'aaai', 'frap', 'frap_2020-10-02.19-08-44-396561', 'states',
+         'ep_6_frap_2020-10-02.19-08-44-396561.tar'))
 
 model = state.model
 
