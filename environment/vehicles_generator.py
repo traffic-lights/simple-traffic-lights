@@ -187,3 +187,36 @@ class SinusoidalGenerator(VehiclesGenerator):
 
         # print(f"time: {time} dt: {dt}")
 
+
+class WidgetGenerator(VehiclesGenerator):
+    lanes_periods = {}
+
+    @classmethod
+    def add_lane(cls, lane, active, period):
+        if not active:
+            return
+
+        cls.lanes[lane] = Lane(lane)
+        cls.lanes_periods[lane] = period
+
+    @classmethod
+    def generate_vehicles(cls, time):
+        cls._update(time)
+
+        for lane_id, lane in cls.lanes.items():
+            period = cls.lanes_periods[lane_id]
+            lane.add_car(time, period)
+            # print(f"lane: {lane_id} period: {period}")
+
+    @classmethod
+    def _update(cls, time):
+        pass
+
+    @classmethod
+    def get_periods(cls):
+        return cls.lanes_periods
+
+    @classmethod
+    def set_periods(cls, periods):
+        for key in periods:
+            cls.lanes_periods[key] = periods[key]

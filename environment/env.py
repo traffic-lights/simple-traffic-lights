@@ -33,6 +33,7 @@ from environment.vehicles_generator import (
     SinusoidalGenerator,
     XMLGenerator,
     ConstGenerator,
+    WidgetGenerator
 )
 
 REPLAY_FPS = 8
@@ -74,7 +75,8 @@ class SumoEnv(gym.Env):
             self.vehicle_generator = ConstGenerator
         elif generator_type == "sin":
             self.vehicle_generator = SinusoidalGenerator
-            generator_lanes = env_configs["vehicle_generator"]["lanes"]
+        elif generator_type == "widget":
+            self.vehicle_generator = WidgetGenerator
         else:
             print(f"{generator_type} unknown generator type")
             sys.exit(-1)
