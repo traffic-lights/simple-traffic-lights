@@ -19,7 +19,6 @@ import traci
 import traci.constants as tc
 
 import imageio
-import re
 from os import listdir
 from os.path import isfile, join
 import tempfile
@@ -28,61 +27,24 @@ import datetime
 
 from settings import PROJECT_ROOT
 
-DEFAULT_SPAWN_PERIOD = 10
-MAX_LANE_OCCUPANCY = 0.6
+from environment.vehicles_generator import (
+    SinusoidalGenerator,
+    XMLGenerator,
+    ConstGenerator,
+)
 
 REPLAY_FPS = 8
-
-
-class Lane:
-    def __init__(self, lane_id, route_id, spawn_period=DEFAULT_SPAWN_PERIOD):
-        super().__init__()
-
-        assert spawn_period >= 0, 'negative spawn period'
-
-        edge_id = traci.lane.getEdgeID(lane_id)
-        # lane index from laneID
-        self.lane_id = lane_id
-        self.index = int(re.sub(f'{edge_id}_', "", lane_id))
-        self.route_id = route_id
-        self.spawn_period = spawn_period
-
-        self.next_timer = 0
-
-    def add_car(self, current_time, car_ids):
-        last_step_occupancy = traci.lane.getLastStepOccupancy(self.lane_id)
-        if (
-                self.next_timer - current_time <= 0
-                and last_step_occupancy <= MAX_LANE_OCCUPANCY
-        ):
-            car_id = f"{self.route_id}_{car_ids}"
-            traci.vehicle.add(
-                vehID=car_id, routeID=self.route_id, departLane=self.index
-            )
-            self.next_timer = current_time + self.spawn_period
-
-            return True
-        return False
-
-    def reset_spawning_data(self):
-        self.next_timer = 0
-        self.car_ids = 0
-
-    def __str__(self):
-        return f"lane: {self.lane_id} route: {self.route_id}"
 
 
 class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-            self,
-            config_file=Path(PROJECT_ROOT, "environment", "2lane/2lane.sumocfg"),
-            replay_folder=Path(PROJECT_ROOT, "replays"),
-            save_replay=False,
-            render=False,
+        self, env_configs, save_replay=False, render=False,
     ):
         super().__init__()
+
+        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])        
 
         sumo_binary = ""
         if render:
@@ -103,34 +65,22 @@ class SumoEnv(gym.Env):
         traci.start(self.sumo_cmd)
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
-        self.replay_folder = replay_folder
+        self.replay_folder = Path(PROJECT_ROOT, env_configs["replay_folder"])
 
-        self.start_lanes = []
-        self.car_ids = {}
+        generator_type = env_configs["vehicle_generator"]["type"]
+        if generator_type == "const":
+            self.vehicle_generator = ConstGenerator
+        elif generator_type == "sin":
+            self.vehicle_generator = SinusoidalGenerator
+            generator_lanes = env_configs["vehicle_generator"]["lanes"]
+        else:
+            print(f"{generator_type} unknown generator type")
+            sys.exit(-1)
 
-        self.routes = traci.route.getIDList()
+        generator_lanes = env_configs["vehicle_generator"]["lanes"]
 
-        for lane in traci.lane.getIDList():
-            start_edge = traci.lane.getEdgeID(lane)
-            links = traci.lane.getLinks(lane)
-
-            spawn_period = traci.lane.getParameter(lane, "period")
-            try:
-                spawn_period = int(spawn_period)
-            except ValueError:
-                if spawn_period != "None" and spawn_period != "":
-                    print(f'bad period value: {spawn_period}')
-
-                spawn_period = None
-
-            for link in links:
-                end_edge = traci.lane.getEdgeID(link[0])
-                for route in self.routes:
-                    route_edges = traci.route.getEdges(route)
-                    if start_edge in route_edges and end_edge in route_edges:
-                        self.car_ids[route] = 0
-                        if spawn_period is not None:
-                            self.start_lanes.append(Lane(lane, route, spawn_period))
+        for lane in generator_lanes:
+            self.vehicle_generator.add_lane(**lane)
 
     def step(self, action):
         reward, info = self._take_action(action)
@@ -155,11 +105,7 @@ class SumoEnv(gym.Env):
         traci.start(self.sumo_cmd)
         self._reset()
 
-        for route in self.routes:
-            self.car_ids[route] = 0
-
-        for lane in self.start_lanes:
-            lane.reset_spawning_data()
+        self.vehicle_generator.reset()
 
         return self._snap_state()
 
@@ -182,7 +128,7 @@ class SumoEnv(gym.Env):
 
         res_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         with imageio.get_writer(
-                f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
+            f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
         ) as writer:
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")
@@ -190,6 +136,4 @@ class SumoEnv(gym.Env):
 
     def _generate_vehicles(self):
         current_time = traci.simulation.getTime()
-        for lane in self.start_lanes:
-            if lane.add_car(current_time, self.car_ids[lane.route_id]):
-                self.car_ids[lane.route_id] += 1
+        self.vehicle_generator.generate_vehicles(current_time)
