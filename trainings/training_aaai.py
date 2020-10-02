@@ -51,7 +51,7 @@ def get_frap_training():
         pre_train_steps=1500,
         tau=0.001,
         lr=0.0001,
-        save_freq=5
+        save_freq=1
     )
 
     memory = Memory(training_param.memory_size)
@@ -80,4 +80,4 @@ def train_aaai():
 
 
 if __name__ == '__main__':
-    main_train(get_frap_training(), AaaiEnv, Path('saved', 'aaai', 'frap'))
+    train_aaai()
