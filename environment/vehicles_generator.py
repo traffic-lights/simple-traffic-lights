@@ -41,8 +41,8 @@ class Lane:
     def add_car(self, current_time, period):
         last_step_occupancy = traci.lane.getLastStepOccupancy(self.lane_id)
         if (
-            self.next_timer - current_time <= 0
-            and last_step_occupancy <= MAX_LANE_OCCUPANCY
+                self.next_timer - current_time <= 0
+                and last_step_occupancy <= MAX_LANE_OCCUPANCY
         ):
             car_id = f"{self.lane_id}_{self.car_ids}"
             self.car_ids += 1
@@ -63,34 +63,33 @@ class Lane:
 
 
 class VehiclesGenerator(ABC):
-    lanes = {}
 
-    @classmethod
+    def __init__(self):
+        self.lanes = {}
+
     @abstractmethod
-    def add_lane(cls, lane):
+    def add_lane(self, lane):
         pass
 
-    @classmethod
     @abstractmethod
-    def generate_vehicles(cls, time):
+    def generate_vehicles(self, time):
         pass
 
-    @classmethod
     @abstractmethod
-    def _update(cls, time):
+    def _update(self, time):
         pass
 
-    @classmethod
-    def reset(cls):
-        for lane in cls.lanes.values():
+    def reset(self):
+        for lane in self.lanes.values():
             lane.reset_spawning_data()
 
 
 class XMLGenerator(VehiclesGenerator):
-    lanes_periods = {}
+    def __init__(self):
+        super().__init__()
+        self.lanes_periods = {}
 
-    @classmethod
-    def add_lane(cls, lane, active):
+    def add_lane(self, lane, active):
         if not active:
             return
 
@@ -106,117 +105,109 @@ class XMLGenerator(VehiclesGenerator):
 
         assert spawn_period >= 0, "negative spawn period"
 
-        cls.lanes[lane] = Lane(lane)
-        cls.lanes_periods[lane] = spawn_period
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = spawn_period
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
+    def generate_vehicles(self, time):
+        self._update(time)
 
-        for lane_id, lane in cls.lanes.items():
-            period = cls.lanes_periods[lane_id]
+        for lane_id, lane in self.lanes.items():
+            period = self.lanes_periods[lane_id]
             lane.add_car(time, period)
             # print(f"lane: {lane_id} period: {period}")
 
-    @classmethod
-    def _update(cls, time):
+    def _update(self, time):
         pass
 
 
 class ConstGenerator(VehiclesGenerator):
-    lanes_periods = {}
+    def __init__(self):
+        super().__init__()
+        self.lanes_periods = {}
 
-    @classmethod
-    def add_lane(cls, lane, active, period):
+    def add_lane(self, lane, active, period):
         if not active:
             return
 
-        cls.lanes[lane] = Lane(lane)
-        cls.lanes_periods[lane] = period
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = period
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
+    def generate_vehicles(self, time):
+        self._update(time)
 
-        for lane_id, lane in cls.lanes.items():
-            period = cls.lanes_periods[lane_id]
+        for lane_id, lane in self.lanes.items():
+            period = self.lanes_periods[lane_id]
             lane.add_car(time, period)
             # print(f"lane: {lane_id} period: {period}")
 
-    @classmethod
-    def _update(cls, time):
+    def _update(self, time):
         pass
 
 
 class SinusoidalGenerator(VehiclesGenerator):
-    last_time = 0
-    time_sum = 0
+    def __init__(self):
 
-    sin_parameters = {}
+        super().__init__()
+        self.last_time = 0
+        self.time_sum = 0
 
-    @classmethod
-    def add_lane(cls, lane, active, amplitude, multiplier, start, min):
+        self.sin_parameters = {}
+
+    def add_lane(self, lane, active, amplitude, multiplier, start, min):
         if not active:
             return
 
-        cls.lanes[lane] = Lane(lane)
-        cls.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
+        self.lanes[lane] = Lane(lane)
+        self.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
+    def generate_vehicles(self, time):
+        self._update(time)
 
-        for lane_id, lane in cls.lanes.items():
-            params = cls.sin_parameters[lane_id]
-            arg = (cls.time_sum / SIN_ARG_DIVIDER) * math.pi + params.start * math.pi
+        for lane_id, lane in self.lanes.items():
+            params = self.sin_parameters[lane_id]
+            arg = (self.time_sum / SIN_ARG_DIVIDER) * math.pi + params.start * math.pi
             sin_value = math.sin(params.multiplier * (arg))
             period = params.amplitude * sin_value + params.amplitude + params.min
             # print(f"period: {period}")
             lane.add_car(time, period)
 
-    @classmethod
-    def _update(cls, time):
-        dt = time - cls.last_time
+    def _update(self, time):
+        dt = time - self.last_time
         if dt < 0:
             dt = time
 
-        if time != cls.last_time:
-            cls.time_sum += dt
+        if time != self.last_time:
+            self.time_sum += dt
 
-        cls.last_time = time
-
-        # print(f"time: {time} dt: {dt}")
+        self.last_time = time
 
 
 class WidgetGenerator(VehiclesGenerator):
-    lanes_periods = {}
+    def __init__(self):
+        super().__init__()
+        self.lanes_periods = {}
 
-    @classmethod
-    def add_lane(cls, lane, active, period):
+    def add_lane(self, lane, active, period):
         if not active:
             return
 
-        cls.lanes[lane] = Lane(lane)
-        cls.lanes_periods[lane] = period
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = period
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
+    def generate_vehicles(self, time):
+        self._update(time)
 
-        for lane_id, lane in cls.lanes.items():
-            period = cls.lanes_periods[lane_id]
+        for lane_id, lane in self.lanes.items():
+            period = self.lanes_periods[lane_id]
             lane.add_car(time, period)
             # print(f"lane: {lane_id} period: {period}")
 
-    @classmethod
-    def _update(cls, time):
+    def _update(self, time):
         pass
 
-    @classmethod
-    def get_periods(cls):
-        return cls.lanes_periods
+    def get_periods(self):
+        return self.lanes_periods
 
-    @classmethod
-    def set_periods(cls, periods):
+    def set_periods(self, periods):
         for key in periods:
-            cls.lanes_periods[key] = periods[key]
+            self.lanes_periods[key] = periods[key]

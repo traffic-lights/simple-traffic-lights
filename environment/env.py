@@ -72,11 +72,11 @@ class SumoEnv(gym.Env):
 
         generator_type = env_configs["vehicle_generator"]["type"]
         if generator_type == "const":
-            self.vehicle_generator = ConstGenerator
+            self.vehicle_generator = ConstGenerator()
         elif generator_type == "sin":
-            self.vehicle_generator = SinusoidalGenerator
+            self.vehicle_generator = SinusoidalGenerator()
         elif generator_type == "widget":
-            self.vehicle_generator = WidgetGenerator
+            self.vehicle_generator = WidgetGenerator()
         else:
             print(f"{generator_type} unknown generator type")
             sys.exit(-1)
