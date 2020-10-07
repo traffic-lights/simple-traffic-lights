@@ -219,7 +219,7 @@ class RandomGenerator(VehiclesGenerator):
     def __init__(self):
         super().__init__()
 
-        self.line_periods = []
+        self.line_periods = {}
 
     def add_lane(self, lane, active, min_period, max_period):
         if not active:

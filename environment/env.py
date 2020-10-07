@@ -33,7 +33,8 @@ from environment.vehicles_generator import (
     SinusoidalGenerator,
     XMLGenerator,
     ConstGenerator,
-    WidgetGenerator
+    WidgetGenerator,
+    RandomGenerator
 )
 
 REPLAY_FPS = 8
@@ -43,11 +44,11 @@ class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-        self, env_configs, save_replay=False, render=False,
+            self, env_configs, save_replay=False, render=False,
     ):
         super().__init__()
 
-        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])        
+        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])
 
         sumo_binary = ""
         if render:
@@ -79,6 +80,8 @@ class SumoEnv(gym.Env):
             self.vehicle_generator = SinusoidalGenerator()
         elif generator_type == "widget":
             self.vehicle_generator = WidgetGenerator()
+        elif generator_type == 'random':
+            self.vehicle_generator = RandomGenerator()
         else:
             print(f"{generator_type} unknown generator type")
             sys.exit(-1)
@@ -134,7 +137,7 @@ class SumoEnv(gym.Env):
 
         res_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         with imageio.get_writer(
-            f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
+                f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
         ) as writer:
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")
