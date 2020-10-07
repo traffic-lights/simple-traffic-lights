@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from collections import namedtuple
 import math
+import random
 import traci
 import traci.constants as tc
 import re
@@ -197,7 +198,6 @@ class WidgetGenerator(VehiclesGenerator):
     def generate_vehicles(self, time):
         self._update(time)
 
-
         for lane_id, lane in self.lanes.items():
             period = self.lanes_periods[lane_id]
             print(f'lane: {lane_id} period: {period}')
@@ -213,3 +213,29 @@ class WidgetGenerator(VehiclesGenerator):
     def set_periods(self, periods):
         for key in periods:
             self.lanes_periods[key] = periods[key]
+
+
+class RandomGenerator(VehiclesGenerator):
+    def __init__(self):
+        super().__init__()
+
+        self.line_periods = []
+
+    def add_lane(self, lane, active, min_period, max_period):
+        if not active:
+            return
+
+        self.lanes[lane] = Lane(lane)
+        self.line_periods[lane] = (min_period, max_period)
+
+    def generate_vehicles(self, time):
+        self._update(time)
+
+        for lane_id, lane in self.lanes.items():
+            a, b = self.line_periods[lane_id]
+            random.uniform(a, b)
+            period = random.uniform(a, b)
+            lane.add_car(time, period)
+
+    def _update(self, time):
+        pass
