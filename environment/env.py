@@ -63,6 +63,8 @@ class SumoEnv(gym.Env):
             "true",
             "--time-to-teleport",
             "-1",
+            "--max-depart-delay",
+            "0"
         ]
 
         traci.start(self.sumo_cmd)

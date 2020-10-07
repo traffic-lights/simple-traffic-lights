@@ -47,7 +47,7 @@ class Lane:
             car_id = f"{self.lane_id}_{self.car_ids}"
             self.car_ids += 1
             traci.vehicle.add(
-                vehID=car_id, routeID=self.route_id, departLane=self.index
+                vehID=car_id, routeID=self.route_id, departLane=self.index, departSpeed="max"
             )
             self.next_timer = current_time + period
 
@@ -197,8 +197,10 @@ class WidgetGenerator(VehiclesGenerator):
     def generate_vehicles(self, time):
         self._update(time)
 
+
         for lane_id, lane in self.lanes.items():
             period = self.lanes_periods[lane_id]
+            print(f'lane: {lane_id} period: {period}')
             lane.add_car(time, period)
             # print(f"lane: {lane_id} period: {period}")
 
