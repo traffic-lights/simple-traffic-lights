@@ -14,8 +14,8 @@ LIGHT_DURATION = 10
 
 
 class AaaiEnv(SumoEnv):
-    def __init__(self, save_replay=False, render=False, light_duration=LIGHT_DURATION, key="aaai_random"):
-        env_configs = load_from_file(key)
+    def __init__(self, save_replay=False, render=False, light_duration=LIGHT_DURATION, conf_file="aaai.json"):
+        env_configs = load_from_file(conf_file)
 
         super().__init__(
             env_configs=env_configs, save_replay=save_replay, render=render

@@ -4,14 +4,10 @@ from pathlib import Path
 from settings import PROJECT_ROOT
 
 
-CONFIGS_FILE = Path(PROJECT_ROOT, "environment", "configs", "environments.json")
+def load_from_file(config_file_path):
+    config_flie_path = Path(PROJECT_ROOT, "environment", "configs", config_file_path)
 
-
-def load_from_file(env_name):
-
-    with open(CONFIGS_FILE) as file:
+    with open(config_flie_path) as file:
         data = json.load(file)
 
-        assert env_name in data, f"{env_name} not defined in {CONFIGS_FILE}"
-
-    return data[env_name]
+        return data

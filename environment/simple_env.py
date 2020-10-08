@@ -28,8 +28,8 @@ TRAFFICLIGHTS_PHASES = 4
 
 
 class SimpleEnv(SumoEnv):
-    def __init__(self, save_replay=False, render=False):
-        env_configs = load_from_file("2lane")
+    def __init__(self, save_replay=False, render=False, config_file="2lane.json"):
+        env_configs = load_from_file(config_file)
 
         super().__init__(
             env_configs=env_configs, save_replay=save_replay, render=render

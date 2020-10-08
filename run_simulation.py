@@ -24,7 +24,7 @@ class SumoWorker(QRunnable):
         self.state = TrainingState.from_path(states_path)
         self.model = self.state.model
 
-        self.env = AaaiEnv(render=True, save_replay=False, key="aaai_qt")
+        self.env = AaaiEnv(render=True, save_replay=False, conf_file="aaai_qt.json")
 
         ret = self.env.vehicle_generator.get_periods()
 
