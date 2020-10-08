@@ -9,7 +9,6 @@ import re
 
 SinParameters = namedtuple("SinParameters", ["amplitude", "multiplier", "start", "min"])
 
-MAX_LANE_OCCUPANCY = 0.6
 SIN_ARG_DIVIDER = 10000000
 
 
@@ -36,27 +35,26 @@ class Lane:
 
         assert self.route_id is not None, f"unable to find route for {self.lane_id}"
 
-        self.next_timer = 0
+        self.last_spawn = 0
         self.car_ids = 0
 
     def add_car(self, current_time, period):
-        last_step_occupancy = traci.lane.getLastStepOccupancy(self.lane_id)
-        if (
-                self.next_timer - current_time <= 0
-                and last_step_occupancy <= MAX_LANE_OCCUPANCY
-        ):
+        if current_time - self.last_spawn >= period or self.last_spawn == 0:
             car_id = f"{self.lane_id}_{self.car_ids}"
             self.car_ids += 1
             traci.vehicle.add(
-                vehID=car_id, routeID=self.route_id, departLane=self.index, departSpeed="max"
+                vehID=car_id,
+                routeID=self.route_id,
+                departLane=self.index,
+                departSpeed="max",
             )
-            self.next_timer = current_time + period
+            self.last_spawn = current_time
 
             return True
         return False
 
     def reset_spawning_data(self):
-        self.next_timer = 0
+        self.last_spawn = 0
         self.car_ids = 0
 
     def __str__(self):
@@ -64,7 +62,6 @@ class Lane:
 
 
 class VehiclesGenerator(ABC):
-
     def __init__(self):
         self.lanes = {}
 
@@ -200,9 +197,7 @@ class WidgetGenerator(VehiclesGenerator):
 
         for lane_id, lane in self.lanes.items():
             period = self.lanes_periods[lane_id]
-            print(f'lane: {lane_id} period: {period}')
             lane.add_car(time, period)
-            # print(f"lane: {lane_id} period: {period}")
 
     def _update(self, time):
         pass
