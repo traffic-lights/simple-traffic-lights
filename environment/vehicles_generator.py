@@ -175,9 +175,10 @@ class WidgetGenerator(VehiclesGenerator):
     def __init__(self):
         super().__init__()
 
+        self.active_lanes = {}
+
     def add_lane(self, lane, active, period):
-        if not active:
-            return
+        self.active_lanes[lane] = active
 
         self.lanes[lane] = Lane(lane)
         self.lanes_periods[lane] = period
@@ -185,14 +186,18 @@ class WidgetGenerator(VehiclesGenerator):
 
     def generate_vehicles(self, time):
         for lane_id, lane in self.lanes.items():
-            self._create_vehicle(lane_id, lane, time)
+            if self.active_lanes[lane_id]:
+                self._create_vehicle(lane_id, lane, time)
+
+    def update(self, lanes_periods, active_lanes):
+        self.lanes_periods = lanes_periods
+        self.active_lanes = active_lanes
 
     def get_periods(self):
         return self.lanes_periods
 
-    def set_periods(self, periods):
-        for key in periods:
-            self.lanes_periods[key] = periods[key]
+    def get_active_lanes(self):
+        return self.active_lanes
 
 
 class RandomGenerator(VehiclesGenerator):

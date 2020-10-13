@@ -18,9 +18,10 @@ SLIDER_TICK_INTERVAL = 5
 
 
 class SumoWorker(QRunnable):
-    def __init__(self, period_dict, states_path):
+    def __init__(self, period_dict, active_lanes, states_path):
         super(SumoWorker, self).__init__()
         self.period_dict = period_dict
+        self.active_lanes = active_lanes
         self.state = TrainingState.from_path(states_path)
         self.model = self.state.model
 
@@ -28,11 +29,13 @@ class SumoWorker(QRunnable):
 
         ret = self.env.vehicle_generator.get_periods()
 
-        self.last_lanes_periods = {}
-
         for key in ret:
             self.period_dict[key] = ret[key]
-            self.last_lanes_periods[key] = ret[key]
+
+        ret = self.env.vehicle_generator.get_active_lanes()
+        
+        for key in ret:
+            self.active_lanes[key] = ret[key]
 
     @pyqtSlot()
     def run(self):
@@ -52,17 +55,7 @@ class SumoWorker(QRunnable):
 
             state = next_state
 
-            update_generator = False
-            for key in self.period_dict:
-                if self.last_lanes_periods[key] != self.period_dict[key]:
-                    update_generator = True
-                    break
-
-            if update_generator:
-                self.env.vehicle_generator.set_periods(self.period_dict)
-
-            for key in self.period_dict:
-                self.last_lanes_periods[key] = self.period_dict[key]
+            self.env.vehicle_generator.update(self.period_dict, self.active_lanes)
 
         print(f"simulation done")
         self.env.close()
@@ -86,17 +79,21 @@ class MainWindow(QWidget):
         layout.addWidget(label)
 
         self.lanes_dict = {}
+        self.active_lanes = {}
 
         self.threadpool = QThreadPool()
-        worker = SumoWorker(self.lanes_dict, filenames[0])
+        worker = SumoWorker(self.lanes_dict, self.active_lanes, filenames[0])
 
         self.labels = {}
         self.sliders = []
+        self.checkboxes = []
 
         for key in self.lanes_dict:
             period = self.lanes_dict[key]
             self.labels[key] = QLabel(f"{key} period: {period}s")
             layout.addWidget(self.labels[key])
+
+            lane_box = QHBoxLayout()
 
             slider = QSlider(Qt.Horizontal)
             slider.setMinimum(MIN_SLIDER_VAL)
@@ -107,9 +104,18 @@ class MainWindow(QWidget):
 
             slider.valueChanged.connect(partial(self.update_period, key, slider))
 
-            layout.addWidget(slider)
+            lane_box.addWidget(slider)
 
             self.sliders.append(slider)
+
+            checkbox = QCheckBox("active")
+            checkbox.setChecked(True)
+            checkbox.stateChanged.connect(partial(self.update_active, key, checkbox))
+
+            lane_box.addWidget(checkbox)
+            layout.addLayout(lane_box)
+
+            self.checkboxes.append(checkbox)
 
         self.setLayout(layout)
 
@@ -119,6 +125,9 @@ class MainWindow(QWidget):
         period = slider.value()
         self.lanes_dict[lane] = period
         self.labels[lane].setText(f"{lane} period: {period}s")
+
+    def update_active(self, lane, checkbox):
+        self.active_lanes[lane] = checkbox.isChecked()
 
 
 app = QApplication([])
