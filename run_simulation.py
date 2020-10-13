@@ -41,15 +41,14 @@ class SumoWorker(QRunnable):
     def run(self):
         state = self.env.reset()
         ep_len = 0
-        done = False
 
-        while not done:
+        while not False:
             ep_len += 1
             tensor_state = torch.tensor([state], dtype=torch.float32)
             action = self.model(tensor_state).max(1)[1][0].cpu().detach().numpy().item()
 
             try:
-                next_state, reward, done, info = self.env.step(action)
+                next_state, reward, _, info = self.env.step(action)
             except Exception:
                 break
 
