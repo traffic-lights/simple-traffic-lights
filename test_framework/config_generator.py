@@ -3,8 +3,121 @@ from pathlib import Path
 import argparse
 from xml.dom import minidom
 import json
+from abc import ABC, abstractmethod
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+class Command(ABC):
+    @abstractmethod
+    def execute(self):
+        pass
+
+    @abstractmethod
+    def help(self):
+        pass
+
+
+class ListLanes(Command):
+    def __init__(self, gen):
+        self.gen = gen
+
+    def execute(self, args):
+        self.gen.display_available_lanes()
+
+    def help(self):
+        return "al - list all available lanes"
+
+
+class ShowTests(Command):
+    def __init__(self, gen):
+        self.gen = gen
+
+    def execute(self, args):
+        print("current added tests:")
+        for index, test_name in enumerate(self.gen.test_cases):
+            print(f"{index}: {test_name}")
+
+    def help(self):
+        return "st - list all added tests"
+
+
+class AddTest(Command):
+    def __init__(self, gen):
+        self.gen = gen
+
+    def execute(self, args):
+        if len(args) != 3:
+            print("arguments count missmatch, see help")
+        else:
+            self.gen.add_test_case(*args)
+
+    def help(self):
+        return """at <name> <gen_type> <lanes> - add test case
+                - <name> - test name
+                - <gen_type> - type of vehicle generator
+                - <lanes> - list of lanes indexes to use in test"""
+
+
+class RemoveTest(Command):
+    def __init__(self, gen):
+        self.gen = gen
+
+    def execute(self, args):
+        if len(args) != 1:
+            print("argument count missmatch, see help")
+        else:
+            try:
+                del self.gen.test_cases[args[0]]
+            except KeyError:
+                print(f"{args[0]} does not exist")
+
+    def help(self):
+        return """rt <name> - remove test case
+                - <name> - test case name to remove"""
+
+
+class SaveAndQuit(Command):
+    def __init__(self, gen):
+        self.gen = gen
+
+    def execute(self, args):
+        if len(args) != 3:
+            print("argument count missmatch, see help")
+        else:
+            self.gen.save(*args)
+            self.gen.quit()
+
+    def help(self):
+        return """sq - save and quit
+                - <config_path> - path where to store configuration file
+                - <generator_path> - path where to store vehilce generators
+                - <file_name> - test configuration file name"""
+
+
+class Help(Command):
+    def __init__(self, commands):
+        self.commands = commands
+
+    def execute(self, args):
+        print("available commands:")
+        for _, command in self.commands.items():
+            print(command.help())
+
+    def help(self):
+        return "h - displays help"
+
+
+class Unknown(Command):
+    def __init__(self):
+        pass
+
+    def execute(self, args):
+        print("command not found, see help")
+
+    def help(self):
+        return ""
+
 
 class TestCase:
     def __init__(self, name, gen_type, lanes):
@@ -80,10 +193,10 @@ class Generator:
 if __name__ == "__main__":
     print("Enter env name:")
     env_name = str(input())
-    sumocfg = f'{env_name}/{env_name}.sumocfg'
-    sumorou = f'{env_name}/{env_name}.rou.xml'
+    sumocfg = f"{env_name}/{env_name}.sumocfg"
+    sumorou = f"{env_name}/{env_name}.rou.xml"
     sumorou = str(Path(PROJECT_ROOT, "environment", sumorou))
-    sumonet = f'{env_name}/{env_name}.net.xml'
+    sumonet = f"{env_name}/{env_name}.net.xml"
     sumonet = str(Path(PROJECT_ROOT, "environment", sumonet))
 
     sumorou = minidom.parse(sumorou)
@@ -105,37 +218,25 @@ if __name__ == "__main__":
 
     gen = Generator(start_lanes, sumocfg)
 
-    commands_message = """Available commands: 
-                    - al - list all available lanes
-                    - at - add test case
-                    - sq - save and quit
-                    - h - displays help"""
+    commands = {
+        "al": ListLanes(gen),
+        "st": ShowTests(gen),
+        "at": AddTest(gen),
+        "rt": RemoveTest(gen),
+        "sq": SaveAndQuit(gen),
+    }
+
+    commands["h"] = Help(commands)
+
+    unknown = Unknown()
 
     print("Welcome to test configuration generator.")
-    print(commands_message)
+    print(f"commands: {commands}")
+    commands["h"].execute([])
     while gen.running:
         data = str(input("> "))
         data = data.split(" ")
-        command = data[0]
         args = [] if len(data) <= 1 else data[1:]
 
-        if command == "al":
-            gen.display_available_lanes()
-        elif command == "at":
-            if len(args) != 3:
-                print("no enough arguments: at <name> <gen_type> <lanes>")
-            else:
-                gen.add_test_case(*args)
-        elif command == "sq":
-            if len(args) != 3:
-                print(
-                    "no enough arguments: sq <config_path> <generator_path> <file_name>"
-                )
-            else:
-                gen.save(*args)
-                gen.quit()
-        elif command == "h":
-            print(commands_message)
-        else:
-            print(f"unknown command '{command}'")
-            print(commands_message)
+        command = commands.get(data[0], unknown)
+        command.execute(args)
