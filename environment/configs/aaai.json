@@ -1,0 +1,105 @@
+{
+    "config_file": "aaai/aaai.sumocfg",
+    "replay_folder": "replays",
+    "vehicle_generator": {
+        "type": "sin",
+        "lanes": [
+            {
+                "lane": "gneE15_0",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE15_1",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE15_2",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE17_0",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE17_1",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE17_2",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE19_0",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE19_1",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE19_2",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE21_0",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE21_1",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            },
+            {
+                "lane": "gneE21_2",
+                "active": true,
+                "amplitude": 20,
+                "multiplier": 1,
+                "start": 0,
+                "min": 5
+            }
+        ]
+    }
+}

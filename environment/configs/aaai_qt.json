@@ -1,0 +1,69 @@
+{
+    "config_file": "aaai/aaai.sumocfg",
+    "replay_folder": "replays",
+    "vehicle_generator": {
+        "type": "widget",
+        "lanes": [
+            {
+                "lane": "gneE15_0",
+                "active": true,
+                "period": 40
+            },
+            {
+                "lane": "gneE15_1",
+                "active": true,
+                "period": 10
+            },
+            {
+                "lane": "gneE15_2",
+                "active": true,
+                "period": 10
+            },
+            {
+                "lane": "gneE17_0",
+                "active": true,
+                "period": 30
+            },
+            {
+                "lane": "gneE17_1",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE17_2",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE19_0",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE19_1",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE19_2",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE21_0",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE21_1",
+                "active": true,
+                "period": 20
+            },
+            {
+                "lane": "gneE21_2",
+                "active": true,
+                "period": 20
+            }
+        ]
+    }
+}

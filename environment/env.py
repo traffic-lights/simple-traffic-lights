@@ -33,6 +33,8 @@ from environment.vehicles_generator import (
     SinusoidalGenerator,
     XMLGenerator,
     ConstGenerator,
+    WidgetGenerator,
+    RandomGenerator
 )
 
 REPLAY_FPS = 8
@@ -42,11 +44,11 @@ class SumoEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(
-        self, env_configs, save_replay=False, render=False,
+            self, env_configs, save_replay=False, render=False,
     ):
         super().__init__()
 
-        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])        
+        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])
 
         sumo_binary = ""
         if render:
@@ -62,6 +64,8 @@ class SumoEnv(gym.Env):
             "true",
             "--time-to-teleport",
             "-1",
+            "--max-depart-delay",
+            "0"
         ]
 
         traci.start(self.sumo_cmd)
@@ -71,10 +75,13 @@ class SumoEnv(gym.Env):
 
         generator_type = env_configs["vehicle_generator"]["type"]
         if generator_type == "const":
-            self.vehicle_generator = ConstGenerator
+            self.vehicle_generator = ConstGenerator()
         elif generator_type == "sin":
-            self.vehicle_generator = SinusoidalGenerator
-            generator_lanes = env_configs["vehicle_generator"]["lanes"]
+            self.vehicle_generator = SinusoidalGenerator()
+        elif generator_type == "widget":
+            self.vehicle_generator = WidgetGenerator()
+        elif generator_type == 'random':
+            self.vehicle_generator = RandomGenerator()
         else:
             print(f"{generator_type} unknown generator type")
             sys.exit(-1)
@@ -130,7 +137,7 @@ class SumoEnv(gym.Env):
 
         res_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         with imageio.get_writer(
-            f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
+                f"{res_path}/{res_name}_sim.gif", mode="I", fps=REPLAY_FPS
         ) as writer:
             for filename in filenames:
                 image = imageio.imread(f"{src_path}/{filename}")

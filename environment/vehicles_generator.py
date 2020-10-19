@@ -2,13 +2,13 @@ from abc import ABC
 from abc import abstractmethod
 from collections import namedtuple
 import math
+import random
 import traci
 import traci.constants as tc
 import re
 
 SinParameters = namedtuple("SinParameters", ["amplitude", "multiplier", "start", "min"])
 
-MAX_LANE_OCCUPANCY = 0.6
 SIN_ARG_DIVIDER = 10000000
 
 
@@ -35,27 +35,19 @@ class Lane:
 
         assert self.route_id is not None, f"unable to find route for {self.lane_id}"
 
-        self.next_timer = 0
         self.car_ids = 0
 
-    def add_car(self, current_time, period):
-        last_step_occupancy = traci.lane.getLastStepOccupancy(self.lane_id)
-        if (
-            self.next_timer - current_time <= 0
-            and last_step_occupancy <= MAX_LANE_OCCUPANCY
-        ):
-            car_id = f"{self.lane_id}_{self.car_ids}"
-            self.car_ids += 1
-            traci.vehicle.add(
-                vehID=car_id, routeID=self.route_id, departLane=self.index
-            )
-            self.next_timer = current_time + period
-
-            return True
-        return False
+    def add_car(self):
+        car_id = f"{self.lane_id}_{self.car_ids}"
+        self.car_ids += 1
+        traci.vehicle.add(
+            vehID=car_id,
+            routeID=self.route_id,
+            departLane=self.index,
+            departSpeed="max",
+        )
 
     def reset_spawning_data(self):
-        self.next_timer = 0
         self.car_ids = 0
 
     def __str__(self):
@@ -63,34 +55,40 @@ class Lane:
 
 
 class VehiclesGenerator(ABC):
-    lanes = {}
+    def __init__(self):
+        self.lanes = {}
+        self.last_spawns = {}
+        self.lanes_periods = {}
 
-    @classmethod
     @abstractmethod
-    def add_lane(cls, lane):
+    def add_lane(self, lane):
         pass
 
-    @classmethod
     @abstractmethod
-    def generate_vehicles(cls, time):
+    def generate_vehicles(self, time):
         pass
 
-    @classmethod
-    @abstractmethod
-    def _update(cls, time):
-        pass
+    def _create_vehicle(self, lane_id, lane, time):
+        dt = time - self.last_spawns[lane_id]
+        if (dt >= self.lanes_periods[lane_id]) or self.last_spawns[lane_id] == 0:
+            # print(f"{time - self.last_spawns[lane_id]} {self.lanes_periods[lane_id]}")
+            lane.add_car()
+            self.last_spawns[lane_id] = time
+            return True
 
-    @classmethod
-    def reset(cls):
-        for lane in cls.lanes.values():
+        return False
+
+    def reset(self):
+        for lane in self.lanes.values():
+            self.last_spawns[lane.lane_id] = 0
             lane.reset_spawning_data()
 
 
 class XMLGenerator(VehiclesGenerator):
-    lanes_periods = {}
+    def __init__(self):
+        super().__init__()
 
-    @classmethod
-    def add_lane(cls, lane, active):
+    def add_lane(self, lane, active):
         if not active:
             return
 
@@ -106,84 +104,118 @@ class XMLGenerator(VehiclesGenerator):
 
         assert spawn_period >= 0, "negative spawn period"
 
-        cls.lanes[lane] = Lane(lane)
-        cls.lanes_periods[lane] = spawn_period
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = spawn_period
+        self.last_spawns[lane] = 0
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
-
-        for lane_id, lane in cls.lanes.items():
-            period = cls.lanes_periods[lane_id]
-            lane.add_car(time, period)
-            # print(f"lane: {lane_id} period: {period}")
-
-    @classmethod
-    def _update(cls, time):
-        pass
+    def generate_vehicles(self, time):
+        for lane_id, lane in self.lanes.items():
+            self._create_vehicle(lane_id, lane, time)
 
 
 class ConstGenerator(VehiclesGenerator):
-    lanes_periods = {}
+    def __init__(self):
+        super().__init__()
 
-    @classmethod
-    def add_lane(cls, lane, active, period):
+    def add_lane(self, lane, active, period):
         if not active:
             return
 
-        cls.lanes[lane] = Lane(lane)
-        cls.lanes_periods[lane] = period
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = period
+        self.last_spawns[lane] = 0
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
-
-        for lane_id, lane in cls.lanes.items():
-            period = cls.lanes_periods[lane_id]
-            lane.add_car(time, period)
-            # print(f"lane: {lane_id} period: {period}")
-
-    @classmethod
-    def _update(cls, time):
-        pass
+    def generate_vehicles(self, time):
+        for lane_id, lane in self.lanes.items():
+            self._create_vehicle(lane_id, lane, time)
 
 
 class SinusoidalGenerator(VehiclesGenerator):
-    last_time = 0
-    time_sum = 0
+    def __init__(self):
+        super().__init__()
+        self.last_time = 0
+        self.time_sum = 0
 
-    sin_parameters = {}
+        self.sin_parameters = {}
 
-    @classmethod
-    def add_lane(cls, lane, active, amplitude, multiplier, start, min):
+    def add_lane(self, lane, active, amplitude, multiplier, start, min):
         if not active:
             return
 
-        cls.lanes[lane] = Lane(lane)
-        cls.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
+        self.lanes[lane] = Lane(lane)
+        self.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
+        self.lanes_periods[lane] = self._calcualate_period(lane)
+        self.last_spawns[lane] = 0
 
-    @classmethod
-    def generate_vehicles(cls, time):
-        cls._update(time)
+    def generate_vehicles(self, time):
+        self._update(time)
 
-        for lane_id, lane in cls.lanes.items():
-            params = cls.sin_parameters[lane_id]
-            arg = (cls.time_sum / SIN_ARG_DIVIDER) * math.pi + params.start * math.pi
-            sin_value = math.sin(params.multiplier * (arg))
-            period = params.amplitude * sin_value + params.amplitude + params.min
-            # print(f"period: {period}")
-            lane.add_car(time, period)
+        for lane_id, lane in self.lanes.items():
+            if self._create_vehicle(lane_id, lane, time):
+                self.lanes_periods[lane_id] = self._calcualate_period(lane_id)
 
-    @classmethod
-    def _update(cls, time):
-        dt = time - cls.last_time
+    def _calcualate_period(self, lane_id):
+        params = self.sin_parameters[lane_id]
+        arg = (self.time_sum / SIN_ARG_DIVIDER) * math.pi + params.start * math.pi
+        sin_value = math.sin(params.multiplier * (arg))
+        return params.amplitude * sin_value + params.amplitude + params.min
+
+    def _update(self, time):
+        dt = time - self.last_time
         if dt < 0:
             dt = time
 
-        if time != cls.last_time:
-            cls.time_sum += dt
+        if time != self.last_time:
+            self.time_sum += dt
 
-        cls.last_time = time
+        self.last_time = time
 
-        # print(f"time: {time} dt: {dt}")
 
+class WidgetGenerator(VehiclesGenerator):
+    def __init__(self):
+        super().__init__()
+
+        self.active_lanes = {}
+
+    def add_lane(self, lane, active, period):
+        self.active_lanes[lane] = active
+
+        self.lanes[lane] = Lane(lane)
+        self.lanes_periods[lane] = period
+        self.last_spawns[lane] = 0
+
+    def generate_vehicles(self, time):
+        for lane_id, lane in self.lanes.items():
+            if self.active_lanes[lane_id]:
+                self._create_vehicle(lane_id, lane, time)
+
+    def update(self, lanes_periods, active_lanes):
+        self.lanes_periods = lanes_periods
+        self.active_lanes = active_lanes
+
+    def get_periods(self):
+        return self.lanes_periods
+
+    def get_active_lanes(self):
+        return self.active_lanes
+
+
+class RandomGenerator(VehiclesGenerator):
+    def __init__(self):
+        super().__init__()
+        self.arguments = {}
+
+    def add_lane(self, lane, active, min_period, max_period):
+        if not active:
+            return
+
+        self.lanes[lane] = Lane(lane)
+        self.arguments[lane] = (min_period, max_period)
+        self.lanes_periods[lane] = random.uniform(min_period, max_period)
+        self.last_spawns[lane] = 0
+
+    def generate_vehicles(self, time):
+        for lane_id, lane in self.lanes.items():
+            if self._create_vehicle(lane_id, lane, time):
+                a, b = self.arguments[lane_id]
+                self.lanes_periods[lane_id] = random.uniform(a, b)
