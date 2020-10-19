@@ -1,0 +1,8 @@
+{
+    "test_cases": [
+        {
+            "name": "test1",
+            "generator": "../environment/configs/test_test1.json"
+        }
+    ]
+}
