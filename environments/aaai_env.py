@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from environment.env import SumoEnv
+from environments.sumo_env import SumoEnv, SumoEnvRunner
 from settings import PROJECT_ROOT
-from environment.configs_loader import load_from_file
 
 from gym import error, spaces, utils
 import traci
@@ -13,16 +12,12 @@ TRAFFICLIGHTS_PHASES = 8
 LIGHT_DURATION = 10
 
 
-class AaaiEnv(SumoEnv):
-    def __init__(self, save_replay=False, render=False, light_duration=LIGHT_DURATION, conf_file="aaai.json"):
-        env_configs = load_from_file(conf_file)
+class AaaiEnvRunner(SumoEnvRunner):
+    def __init__(self, sumo_cmd, vehicle_generator_config, traffic_movements, traffic_lights_phases, light_duration):
+        super().__init__(sumo_cmd, vehicle_generator_config)
 
-        super().__init__(
-            env_configs=env_configs, save_replay=save_replay, render=render
-        )
-
-        self.observation_space = spaces.Space(shape=(TRAFFIC_MOVEMENTS + 1,))
-        self.action_space = spaces.Discrete(TRAFFICLIGHTS_PHASES)
+        self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
+        self.action_space = spaces.Discrete(traffic_lights_phases)
         self.tls_id = traci.trafficlight.getIDList()[0]
         self.light_duration = light_duration
         self.previous_action = 0
@@ -130,3 +125,23 @@ class AaaiEnv(SumoEnv):
             return 0
 
         return round(self.travel_time / self.throughput, 2)
+
+
+class AaaiEnv(SumoEnv):
+    def _instantiate_runner(self, sumo_cmd) -> SumoEnvRunner:
+        return AaaiEnvRunner(
+            sumo_cmd,
+            self.vehicle_generator_config,
+            self.traffic_movements,
+            self.traffic_lights_phases,
+            self.light_duration
+        )
+
+    def __init__(self, sumocfg_file_path, vehicle_generator_config,
+                 traffic_movements=TRAFFIC_MOVEMENTS,
+                 traffic_lights_phases=TRAFFICLIGHTS_PHASES,
+                 light_duration=LIGHT_DURATION):
+        super().__init__(sumocfg_file_path, vehicle_generator_config)
+        self.traffic_movements = traffic_movements
+        self.traffic_lights_phases = traffic_lights_phases
+        self.light_duration = light_duration

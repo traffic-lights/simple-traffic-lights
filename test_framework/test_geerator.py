@@ -5,10 +5,10 @@ from xml.dom import minidom
 import json
 from abc import ABC, abstractmethod
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+from settings import PROJECT_ROOT, JSONS_FOLDER
 
-EVALUATOR_FOLDER = str(Path("json", "evaluators"))
-ENV_FOLDER = str(Path("json", "envs"))
+EVALUATOR_FOLDER = str(Path(JSONS_FOLDER, "evaluators"))
+ENV_FOLDER = str(Path(JSONS_FOLDER, "envs"))
 
 
 class Command(ABC):

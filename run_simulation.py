@@ -8,8 +8,8 @@ from functools import partial
 
 import torch
 
-from environment.aaai_env import AaaiEnv
-from environment.simple_env import SimpleEnv
+from environments.aaai_env import AaaiEnv
+from environments.simple_env import SimpleEnv
 from trainings.training_parameters import TrainingState
 
 MIN_SLIDER_VAL = 0
