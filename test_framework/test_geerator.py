@@ -8,7 +8,12 @@ from abc import ABC, abstractmethod
 from settings import PROJECT_ROOT, JSONS_FOLDER
 
 EVALUATOR_FOLDER = str(Path(JSONS_FOLDER, "evaluators"))
-ENV_FOLDER = str(Path(JSONS_FOLDER, "envs"))
+ENV_FOLDER = str(Path(JSONS_FOLDER, "configs"))
+
+ADDITIONAL_PARAMETERS = {
+    "simple": [],
+    "aaai": ["traffic_movements", "traffic_lights_phases", "light_duration"],
+}
 
 
 class Command(ABC):
@@ -39,17 +44,18 @@ class AddTest(Command):
         self.gen = gen
 
     def execute(self, args):
-        if len(args) != 3:
+        if len(args) != 4:
             print("arguments count missmatch, see help")
         else:
             self.gen.add_test_case(*args)
 
     def help(self):
         return [
-            "at <name> <gen_type> <env_path>",
+            "at <name> <gen_type> <env_type> <env_path>",
             "add test case",
             "- <name> - test name",
             "- <gen_type> - type of vehicle generator",
+            "- <env_type> - type od environment",
             "- <env_path> - path to sumocfg file",
         ]
 
@@ -109,9 +115,9 @@ class Help(Command):
         print("available commands:")
         for _, command in self.commands.items():
             ret = command.help()
-            print('{:<32s} {}'.format(ret[0], ret[1]))
+            print("{:<32s} {}".format(ret[0], ret[1]))
             for s in ret[2:]:
-                print('{:<35s} {}'.format("", s))
+                print("{:<35s} {}".format("", s))
 
     def help(self):
         return ["h", "displays help"]
@@ -129,15 +135,25 @@ class Unknown(Command):
 
 
 class TestCase:
-    def __init__(self, name, gen_type, lanes, sumocfg):
+    def __init__(self, name, gen_type, lanes, env_type, sumocfg):
         self.name = name
         self.gen_type = gen_type
         self.lanes = lanes
+        self.env_type = env_type
         self.sumocfg = sumocfg
 
-        self.parameters = []
+        self.additional_parameters = {}
+        self.lanes_parameters = []
 
     def define_parameters(self):
+        parameters = ADDITIONAL_PARAMETERS.get(self.env_type, [])
+
+        if len(parameters) > 0:
+            print("define additional parameters:")
+
+        for parameter in parameters:
+            self.additional_parameters[parameter] = int(input(f"{parameter}: "))
+
         print("available lanes:")
         for index, lane in enumerate(self.lanes):
             print(f"{index}: {lane}")
@@ -163,7 +179,7 @@ class TestCase:
             else:
                 print(f"unknown gen_type: {self.gen_type}")
 
-            self.parameters.append(parameters)
+            self.lanes_parameters.append(parameters)
 
 
 class Generator:
@@ -171,19 +187,21 @@ class Generator:
         self.running = True
         self.test_cases = {}
 
-    def add_test_case(self, name, gen_type, sumocfg_path):
-        absolute_path = Path(PROJECT_ROOT, "environment", sumocfg_path)
+    def add_test_case(self, name, gen_type, env_type, sumocfg_path):
+        absolute_path = Path(PROJECT_ROOT, "environments", sumocfg_path)
         parent_folder = absolute_path.parent
 
         try:
             sumocfg = minidom.parse(str(absolute_path))
-            
+
             sumorou = (
                 sumocfg.getElementsByTagName("route-files")[0].attributes["value"].value
             )
             sumorou = str(Path(parent_folder, sumorou))
 
-            sumonet = sumocfg.getElementsByTagName("net-file")[0].attributes["value"].value
+            sumonet = (
+                sumocfg.getElementsByTagName("net-file")[0].attributes["value"].value
+            )
             sumonet = str(Path(parent_folder, sumonet))
 
             sumorou = minidom.parse(sumorou)
@@ -204,7 +222,7 @@ class Generator:
                         start_lanes.add(lane_id)
 
             self.test_cases[name] = TestCase(
-                name, gen_type, sorted(start_lanes), sumocfg_path
+                name, gen_type, sorted(start_lanes), env_type, sumocfg_path
             )
             self.test_cases[name].define_parameters()
 
@@ -216,19 +234,25 @@ class Generator:
         for test_case_name in self.test_cases:
             test_case = self.test_cases[test_case_name]
             env_path = str(Path(ENV_FOLDER, f"{file_name}_{test_case_name}.json"))
-            absolute_path = str(Path(PROJECT_ROOT, env_path))
-            test_case_dict = {"name": test_case_name, "generator": env_path}
+            rel_path = os.path.relpath(env_path, PROJECT_ROOT)
+            test_case_dict = {"name": test_case_name, "generator": rel_path}
             test_cases.append(test_case_dict)
 
+            environment = {"type": test_case.env_type}
+
+            if len(test_case.additional_parameters) > 0:
+                environment["additional_params"] = test_case.additional_parameters
+
             test_case_dump = {
+                "environment": environment,
                 "config_file": test_case.sumocfg,
                 "vehicle_generator": {
                     "type": test_case.gen_type,
-                    "lanes": test_case.parameters,
+                    "lanes": test_case.lanes_parameters,
                 },
             }
 
-            with open(absolute_path, "w") as fp:
+            with open(env_path, "w") as fp:
                 json.dump(test_case_dump, fp, indent=4)
 
         config_dump = {"test_cases": test_cases}
@@ -263,7 +287,3 @@ class Generator:
             command = commands.get(data[0], unknown)
             command.execute(args)
 
-
-if __name__ == "__main__":
-    gen = Generator()
-    gen.run()
