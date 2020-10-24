@@ -18,7 +18,7 @@ ADDITIONAL_PARAMETERS = {
 
 class Command(ABC):
     @abstractmethod
-    def execute(self):
+    def execute(self, *args, **kwargs):
         pass
 
     @abstractmethod
@@ -45,7 +45,7 @@ class AddTest(Command):
 
     def execute(self, args):
         if len(args) != 4:
-            print("arguments count missmatch, see help")
+            print("arguments count mismatch, see help")
         else:
             self.gen.add_test_case(*args)
 
@@ -66,7 +66,7 @@ class RemoveTest(Command):
 
     def execute(self, args):
         if len(args) != 1:
-            print("argument count missmatch, see help")
+            print("argument count mismatch, see help")
         else:
             try:
                 del self.gen.test_cases[args[0]]
@@ -83,7 +83,7 @@ class SaveAndQuit(Command):
 
     def execute(self, args):
         if len(args) != 1:
-            print("argument count missmatch, see help")
+            print("argument count mismatch, see help")
         else:
             self.gen.save(*args)
             self.gen.quit()
