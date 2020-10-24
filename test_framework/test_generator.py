@@ -287,3 +287,6 @@ class Generator:
             command = commands.get(data[0], unknown)
             command.execute(args)
 
+
+
+Generator().run()
