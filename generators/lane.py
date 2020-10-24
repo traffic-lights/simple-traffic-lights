@@ -3,7 +3,6 @@ import traci
 
 class Lane:
     def __init__(self, lane_id):
-        super().__init__()
 
         edge_id = traci.lane.getEdgeID(lane_id)
         # lane index from laneID

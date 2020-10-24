@@ -15,12 +15,13 @@ class VehiclesGenerator(ABC):
     def from_config_dict(config_dict: dict):
         """
         Creates VehicleGenerator with type and lanes specified in config
+        :param traci:
         :param config_dict: {'type': 'const', 'lanes': [{''}]}
         :return:
         """
         from generators import GENERATORS_TYPE_MAPPER
 
-        return GENERATORS_TYPE_MAPPER[config_dict['type']](config_dict['lanes'])
+        return GENERATORS_TYPE_MAPPER[config_dict['type']](lanes=config_dict['lanes'])
 
     @abstractmethod
     def add_lane(self, *args, **kwargs):

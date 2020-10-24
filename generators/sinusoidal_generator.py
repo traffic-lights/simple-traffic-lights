@@ -17,7 +17,6 @@ class SinusoidalGenerator(VehiclesGenerator):
         self.sin_parameters = {}
         super().__init__(lanes)
 
-
     def add_lane(self, lane, active, amplitude, multiplier, start, min):
         if not active:
             return

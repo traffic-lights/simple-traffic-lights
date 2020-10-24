@@ -1,5 +1,6 @@
 import json
 import os, sys
+import uuid
 from pathlib import Path
 
 import gym
@@ -15,15 +16,16 @@ else:
     tools = os.path.join(os.environ["SUMO_HOME"], "tools")
 
 sys.path.append(tools)
-
 import traci
+
 from generators.vehicles_generator import VehiclesGenerator
 
 
 class SumoEnvRunner(gym.Env):
     def __init__(self, sumo_cmd, vehicle_generator_config):
         self.sumo_cmd = sumo_cmd
-        traci.start(self.sumo_cmd)
+        self.unique_id = uuid.uuid4()
+        traci.start(self.sumo_cmd, label=self.unique_id)
         self.vehicle_generator = VehiclesGenerator.from_config_dict(vehicle_generator_config)
 
     def step(self, action):
@@ -34,6 +36,9 @@ class SumoEnvRunner(gym.Env):
             return state, reward, True, info
         else:
             return state, reward, False, info
+
+    def take_traci_control(self):
+        traci.switch(self.unique_id)
 
     def reset(self):
         traci.close()
@@ -48,6 +53,7 @@ class SumoEnvRunner(gym.Env):
         pass
 
     def close(self):
+        self.take_traci_control()
         traci.close()
 
     def _generate_vehicles(self):

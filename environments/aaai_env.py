@@ -2,10 +2,8 @@ from pathlib import Path
 
 from environments.sumo_env import SumoEnv, SumoEnvRunner
 from settings import PROJECT_ROOT
-
-from gym import error, spaces, utils
 import traci
-import traci.constants as tc
+from gym import error, spaces, utils
 
 TRAFFIC_MOVEMENTS = 12
 TRAFFICLIGHTS_PHASES = 8
@@ -13,7 +11,8 @@ LIGHT_DURATION = 10
 
 
 class AaaiEnvRunner(SumoEnvRunner):
-    def __init__(self, sumo_cmd, vehicle_generator_config, traffic_movements, traffic_lights_phases, light_duration):
+    def __init__(self, sumo_cmd, vehicle_generator_config, traffic_movements, traffic_lights_phases,
+                 light_duration):
         super().__init__(sumo_cmd, vehicle_generator_config)
 
         self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
