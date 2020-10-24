@@ -7,8 +7,6 @@ class WidgetGenerator(VehiclesGenerator):
         self.active_lanes = {}
         super().__init__(lanes)
 
-
-
     def add_lane(self, lane, active, period):
         self.active_lanes[lane] = active
 

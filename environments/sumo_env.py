@@ -81,7 +81,6 @@ class SumoEnv:
         env_config = config_dict['environment']
         env_type = env_config['type']
         config_file_path = Path(ENVIRONMENTS_FOLDER, config_dict['config_file'])
-        print(config_file_path)
         return ENVIRONMENTS_TYPE_MAPPER[env_type](
             sumocfg_file_path=config_file_path,
             vehicle_generator_config=config_dict['vehicle_generator'],

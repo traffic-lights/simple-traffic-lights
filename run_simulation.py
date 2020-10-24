@@ -10,6 +10,8 @@ import torch
 
 from environments.aaai_env import AaaiEnv
 from environments.simple_env import SimpleEnv
+from environments.sumo_env import SumoEnv
+from settings import PROJECT_ROOT, JSONS_FOLDER
 from trainings.training_parameters import TrainingState
 
 MIN_SLIDER_VAL = 0
@@ -25,7 +27,7 @@ class SumoWorker(QRunnable):
         self.state = TrainingState.from_path(states_path)
         self.model = self.state.model
 
-        self.env = AaaiEnv(render=True, save_replay=False, conf_file="aaai_qt.json")
+        self.env = SumoEnv.from_config_file(Path(JSONS_FOLDER, 'configs', 'aaai_qt.json')).create_runner(True)
 
         ret = self.env.vehicle_generator.get_periods()
 
@@ -33,7 +35,7 @@ class SumoWorker(QRunnable):
             self.period_dict[key] = ret[key]
 
         ret = self.env.vehicle_generator.get_active_lanes()
-        
+
         for key in ret:
             self.active_lanes[key] = ret[key]
 
@@ -74,12 +76,10 @@ class MainWindow(QWidget):
 
         layout = QVBoxLayout()
         label = QLabel("SUMO period controller")
-
         layout.addWidget(label)
 
         self.lanes_dict = {}
         self.active_lanes = {}
-
         self.threadpool = QThreadPool()
         worker = SumoWorker(self.lanes_dict, self.active_lanes, filenames[0])
 
