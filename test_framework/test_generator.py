@@ -235,7 +235,7 @@ class Generator:
             test_case = self.test_cases[test_case_name]
             env_path = str(Path(ENV_FOLDER, f"{file_name}_{test_case_name}.json"))
             rel_path = os.path.relpath(env_path, PROJECT_ROOT)
-            test_case_dict = {"name": test_case_name, "generator": rel_path}
+            test_case_dict = {"name": test_case_name, "config": rel_path}
             test_cases.append(test_case_dict)
 
             environment = {"type": test_case.env_type}
