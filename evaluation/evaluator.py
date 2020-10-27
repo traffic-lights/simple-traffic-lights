@@ -61,7 +61,7 @@ class Evaluator:
 
     def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step):
         controller_names = traffic_controllers_dict.keys()
-        controllers = traffic_controllers_dict.valies()
+        controllers = traffic_controllers_dict.values()
 
         metrics = self.evaluate_traffic_controllers(controllers)
 
