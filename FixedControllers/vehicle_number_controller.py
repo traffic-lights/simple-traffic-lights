@@ -1,6 +1,5 @@
 import traci
 import math
-import time
 
 # phase_to_incoming_lanes_map format:
 # phase_to_incoming_lanes_map = {
@@ -29,10 +28,9 @@ class VehicleNumberController:
 
 
 class VehicleNumberPhaseDurationController:
-    def __init__(self, min_duration, max_duration, time_f, phase_to_incoming_lanes_map):
+    def __init__(self, min_duration, max_duration, phase_to_incoming_lanes_map):
         self.min_duration = min_duration
         self.max_duration = max_duration
-        self.time_f = time_f
         self.phase_to_incoming_lanes_map = phase_to_incoming_lanes_map
 
         self.phases = list(phase_to_incoming_lanes_map.keys())
@@ -59,26 +57,11 @@ class VehicleNumberPhaseDurationController:
         else:
             factor = 0
 
-        print(factor)
-
-        self.curr_phase_end_time = self.time_f() + self.min_duration + (self.max_duration - self.min_duration) * factor
+        self.curr_phase_end_time = traci.simulation.getTime() + self.min_duration + (self.max_duration - self.min_duration) * factor
 
     def __call__(self, state):
-        if self.time_f() >= self.curr_phase_end_time:
+        if traci.simulation.getTime() >= self.curr_phase_end_time:
             self.iter = (self.iter + 1) % len(self.phases)
-
-        self._calculate_curr_phase_end_time()
-
-        return self.phases[self.iter]
-
-
-class BlockingVehicleNumberPhaseDurationController(VehicleNumberPhaseDurationController):
-    def __call__(self, state):
-        if self.time_f() < self.curr_phase_end_time:
-            time.sleep(self.curr_phase_end_time - self.time_f())
-
-        self.iter = (self.iter + 1) % len(self.phases)
-        self._calculate_curr_phase_end_time()
+            self._calculate_curr_phase_end_time()
 
         return self.phases[self.iter]
-
