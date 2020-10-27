@@ -8,7 +8,8 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam
 
-from environment.simple_env import SimpleEnv
+from environments.simple_env import SimpleEnv
+from environments.sumo_env import SumoEnv
 from memory.prioritized_memory import Memory
 from models.frap import Frap
 from models.neural_net import DQN
@@ -53,29 +54,29 @@ def update_target_net(net, target_net, tau):
         target_param.data.copy_(tau * param.data + target_param.data * (1.0 - tau))
 
 
-def test_model(net, env, max_ep_len, device, should_random=False):
+def test_model(net, runner, max_ep_len, device, should_random=False):
     net = net.eval()
     rewards = []
 
     with torch.no_grad():
 
-        state = env.reset()
+        state = runner.reset()
         ep_len = 0
         done = False
 
         while not done and ep_len < max_ep_len:
             if should_random:
-                action = env.action_space.sample()
+                action = runner.action_space.sample()
             else:
                 tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
                 action = net(tensor_state).max(1)[1].cpu().detach().numpy()[0]
-            state, reward, done, info = env.step(action)
+            state, reward, done, info = runner.step(action)
             rewards.append(reward)
             ep_len += 1
 
         return {
-            'throughput': env.get_throughput(),
-            'travel_time': env.get_travel_time(),
+            'throughput': runner.get_throughput(),
+            'travel_time': runner.get_travel_time(),
             'mean_reward': np.mean(rewards)
         }
 
@@ -84,7 +85,7 @@ def get_model_name(suffix):
     return suffix + '_' + datetime.now().strftime("%Y-%m-%d.%H-%M-%S-%f")
 
 
-def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Path('saved', 'old_models')):
+def main_train(training_state: TrainingState, env:SumoEnv, save_root=Path('saved', 'old_models')):
     params = training_state.training_parameters
 
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -105,11 +106,11 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     print(tensorboard_save_root.resolve())
     writer = SummaryWriter(tensorboard_save_root)
-    with env_class(render=False) as env:
+    with env.create_runner(render=False) as runner:
 
         while params.current_episode < params.num_episodes:
 
-            state = env.reset()
+            state = runner.reset()
 
             ep_len = 0
             done = False
@@ -117,13 +118,13 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
                 ep_len += 1
                 params.total_steps += 1
                 if random.random() < params.current_eps or params.total_steps < params.pre_train_steps:
-                    action = env.action_space.sample()
+                    action = runner.action_space.sample()
 
                 else:
                     tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
                     action = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy()[0].item()
 
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, info = runner.step(action)
                 rewards_queue.append(reward)
                 print(params.total_steps, np.mean(rewards_queue))
 
@@ -151,7 +152,7 @@ def main_train(training_state: TrainingState, env_class=SimpleEnv, save_root=Pat
             else:
                 random_test = False
 
-            test_stats = test_model(training_state.model, env, params.max_ep_len, device,
+            test_stats = test_model(training_state.model, runner, params.max_ep_len, device,
                                     random_test)
 
             training_state.model = training_state.model.train()

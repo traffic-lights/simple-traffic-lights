@@ -1,7 +1,6 @@
 from pathlib import Path
 
-from environment.env import SumoEnv
-from environment.configs_loader import load_from_file
+from environments.sumo_env import SumoEnv, SumoEnvRunner
 from settings import PROJECT_ROOT
 from random import randrange
 
