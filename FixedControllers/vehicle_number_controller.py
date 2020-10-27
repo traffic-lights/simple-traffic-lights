@@ -65,3 +65,29 @@ class VehicleNumberPhaseDurationController:
             self._calculate_curr_phase_end_time()
 
         return self.phases[self.iter]
+
+
+class VehicleNumberPressureController:
+    def __init__(self, tls_id, phase_to_incoming_lanes_map):
+        self.phase_to_incoming_lanes_map = phase_to_incoming_lanes_map
+
+        incomings = set()
+        for ins in phase_to_incoming_lanes_map.values():
+            incomings.update(ins)
+
+        self.in_out_map = {}
+        for entry in traci.trafficlight.getControlledLinks(tls_id):
+            inc, out = entry[0]
+            if inc in incomings:
+                self.in_out_map[inc] = out
+
+    def __call__(self, state):
+        vehicle_per_lane = []
+        for phase, incoming_lanes in self.phase_to_incoming_lanes_map.items():
+            pressures = 0
+            for lane in incoming_lanes:
+                pressures += traci.lane.getLastStepVehicleNumber(lane) - traci.lane.getLastStepVehicleNumber(self.in_out_map[lane])
+
+            vehicle_per_lane.append((phase, pressures))
+
+        return sorted(vehicle_per_lane, key=lambda x: x[1], reverse=True)[0][0]
