@@ -3,7 +3,6 @@
     "type": "simple"
   },
   "config_file": "2lane/2lane.sumocfg",
-  "replay_folder": "replays",
   "vehicle_generator": {
     "type": "const",
     "lanes": [

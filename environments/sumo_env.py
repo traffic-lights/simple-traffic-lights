@@ -32,10 +32,7 @@ class SumoEnvRunner(gym.Env):
         reward, info = self._take_action(action)
         state = self._snap_state()
 
-        if traci.simulation.getMinExpectedNumber() == 0:
-            return state, reward, True, info
-        else:
-            return state, reward, False, info
+        return state, reward, False, info
 
     def take_traci_control(self):
         traci.switch(self.unique_id)

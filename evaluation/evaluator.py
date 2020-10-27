@@ -37,7 +37,7 @@ class Evaluator:
         self.test_cases_list = test_cases_list
 
         self.environments = {
-            test_case['name']: SumoEnv.from_config_file(Path(PROJECT_ROOT, test_case['generator']))
+            test_case['name']: SumoEnv.from_config_file(Path(PROJECT_ROOT, test_case['config']))
             for test_case in self.test_cases_list
         }
 

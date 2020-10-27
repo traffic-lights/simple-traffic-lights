@@ -8,7 +8,6 @@
     }
   },
   "config_file": "aaai/aaai.sumocfg",
-  "replay_folder": "replays",
   "vehicle_generator": {
     "type": "const",
     "lanes": [
