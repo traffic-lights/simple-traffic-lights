@@ -48,7 +48,8 @@ class SumoEnv(gym.Env):
     ):
         super().__init__()
 
-        config_file = Path(PROJECT_ROOT, "environment", env_configs["config_file"])
+        config_file = str(Path(PROJECT_ROOT, "environment", env_configs["config_file"]))
+
 
         sumo_binary = ""
         if render:
@@ -68,6 +69,7 @@ class SumoEnv(gym.Env):
             "0"
         ]
 
+        #print(self.sumo_cmd)
         traci.start(self.sumo_cmd)
         self.save_replay = save_replay
         self.temp_folder = tempfile.TemporaryDirectory()
