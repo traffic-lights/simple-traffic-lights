@@ -1,3 +1,6 @@
+from settings import init_sumo_tools
+
+init_sumo_tools()
 import traci
 
 

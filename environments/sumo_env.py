@@ -5,17 +5,9 @@ from pathlib import Path
 
 import gym
 
-from settings import ENVIRONMENTS_FOLDER
+from settings import ENVIRONMENTS_FOLDER, init_sumo_tools
 
-DEFAULT_SUMO_PATH = os.path.join("/usr", "share", "sumo")
-if "SUMO_HOME" not in os.environ:
-    print("sumo home not in path")
-    tools = os.path.join(DEFAULT_SUMO_PATH, "tools")
-    os.environ['SUMO_HOME'] = DEFAULT_SUMO_PATH
-else:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-
-sys.path.append(tools)
+init_sumo_tools()
 import traci
 
 from generators.vehicles_generator import VehiclesGenerator
@@ -24,11 +16,14 @@ from generators.vehicles_generator import VehiclesGenerator
 class SumoEnvRunner(gym.Env):
     def __init__(self, sumo_cmd, vehicle_generator_config):
         self.sumo_cmd = sumo_cmd
-        self.unique_id = uuid.uuid4()
+        self.unique_id = str(uuid.uuid4())
         traci.start(self.sumo_cmd, label=self.unique_id)
         self.vehicle_generator = VehiclesGenerator.from_config_dict(vehicle_generator_config)
 
+        self.was_step = False
+
     def step(self, action):
+        self.was_step = True
         reward, info = self._take_action(action)
         state = self._snap_state()
 
@@ -38,8 +33,11 @@ class SumoEnvRunner(gym.Env):
         traci.switch(self.unique_id)
 
     def reset(self):
-        traci.close()
-        traci.start(self.sumo_cmd)
+        self.take_traci_control()
+        if self.was_step:
+            traci.close()
+            traci.start(self.sumo_cmd, label=self.unique_id)
+        self.was_step = False
         self._reset()
 
         self.vehicle_generator.reset()

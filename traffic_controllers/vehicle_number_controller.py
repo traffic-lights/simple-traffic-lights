@@ -1,5 +1,10 @@
+from settings import init_sumo_tools
+
+init_sumo_tools()
 import traci
+
 import math
+
 
 # phase_to_incoming_lanes_map format:
 # phase_to_incoming_lanes_map = {
@@ -57,7 +62,8 @@ class VehicleNumberPhaseDurationController:
         else:
             factor = 0
 
-        self.curr_phase_end_time = traci.simulation.getTime() + self.min_duration + (self.max_duration - self.min_duration) * factor
+        self.curr_phase_end_time = traci.simulation.getTime() + self.min_duration + (
+                    self.max_duration - self.min_duration) * factor
 
     def __call__(self, state):
         if traci.simulation.getTime() >= self.curr_phase_end_time:
@@ -86,7 +92,8 @@ class VehicleNumberPressureController:
         for phase, incoming_lanes in self.phase_to_incoming_lanes_map.items():
             pressures = 0
             for lane in incoming_lanes:
-                pressures += traci.lane.getLastStepVehicleNumber(lane) - traci.lane.getLastStepVehicleNumber(self.in_out_map[lane])
+                pressures += traci.lane.getLastStepVehicleNumber(lane) - traci.lane.getLastStepVehicleNumber(
+                    self.in_out_map[lane])
 
             vehicle_per_lane.append((phase, pressures))
 
