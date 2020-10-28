@@ -1,0 +1,8 @@
+{
+    "test_cases": [
+        {
+            "name": "test1",
+            "config": "jsons/configs/test_test1.json"
+        }
+    ]
+}
