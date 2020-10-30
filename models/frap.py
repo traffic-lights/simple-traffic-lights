@@ -105,7 +105,8 @@ class Frap(SerializableModel):
             for q in range(self.num_phases):
                 if q != p:                    
                     tmp2.append(torch.cat([phase_demands[p], phase_demands[q]], dim=1).unsqueeze(1).unsqueeze(1))
-                tmp.append(torch.cat(tmp2, dim=2))
+                    
+            tmp.append(torch.cat(tmp2, dim=2))
 
         demand_embedding = torch.cat(tmp, dim=1)
 
