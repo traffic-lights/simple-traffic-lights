@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 
 from settings import PROJECT_ROOT, JSONS_FOLDER
 
-EVALUATOR_FOLDER = str(Path(JSONS_FOLDER, "evaluators"))
-ENV_FOLDER = str(Path(JSONS_FOLDER, "configs"))
+EVALUATOR_FOLDER = Path(JSONS_FOLDER, "evaluators")
+ENV_FOLDER = Path(JSONS_FOLDER, "configs")
 
 ADDITIONAL_PARAMETERS = {
     "simple": [],
@@ -157,9 +157,13 @@ class TestCase:
         print("available lanes:")
         for index, lane in enumerate(self.lanes):
             print(f"{index}: {lane}")
+        print("all: all lanes")
 
         lanes = str(input("provide lane indexes for this test case: "))
-        lanes = [self.lanes[i] for i in [int(id) for id in lanes.split(",")]]
+        if lanes == "all":
+            lanes = self.lanes
+        else:
+            lanes = [self.lanes[i] for i in [int(id) for id in lanes.split(",")]]
 
         for lane in lanes:
             print(f"provide parameters for lane: {lane}")
@@ -233,9 +237,9 @@ class Generator:
         test_cases = []
         for test_case_name in self.test_cases:
             test_case = self.test_cases[test_case_name]
-            env_path = str(Path(ENV_FOLDER, f"{file_name}_{test_case_name}.json"))
-            rel_path = os.path.relpath(env_path, PROJECT_ROOT)
-            test_case_dict = {"name": test_case_name, "config": rel_path}
+            env_path = Path(ENV_FOLDER, f"{file_name}_{test_case_name}.json")
+            rel_path = env_path.relative_to(env_path, PROJECT_ROOT)
+            test_case_dict = {"name": test_case_name, "config": str(rel_path)}
             test_cases.append(test_case_dict)
 
             environment = {"type": test_case.env_type}
@@ -257,7 +261,7 @@ class Generator:
 
         config_dump = {"test_cases": test_cases}
 
-        config_path = str(Path(PROJECT_ROOT, EVALUATOR_FOLDER, f"{file_name}.json"))
+        config_path = Path(PROJECT_ROOT, EVALUATOR_FOLDER, f"{file_name}.json")
         with open(config_path, "w") as fp:
             json.dump(config_dump, fp, indent=4)
 

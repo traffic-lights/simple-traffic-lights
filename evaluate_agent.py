@@ -5,7 +5,8 @@ from traffic_controllers.model_controller import ModelController
 from traffic_controllers.vehicle_number_controller import VehicleNumberController
 from phases import *
 
-from evaluation.evaluator import Evaluator
+from environment.aaai_env import AaaiEnv
+from environment.simple_env import SimpleEnv
 from trainings.training_parameters import TrainingState
 
 controller1 = VehicleNumberController(get_phase_map())
