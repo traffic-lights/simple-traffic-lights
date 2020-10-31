@@ -1,12 +1,15 @@
 import torch
 
+from traffic_controllers.trafffic_controller import TrafficController
 
-class ModelController:
-    def __init__(self, model):
+
+class ModelController(TrafficController):
+    def __init__(self, model, device=torch.device('cpu')):
         self.model = model
+        self.device = device
 
     def __call__(self, inputs):
-        inputs = torch.tensor(inputs, dtype=torch.float32)
+        inputs = torch.tensor(inputs, dtype=torch.float32, device=self.device)
         if len(inputs.shape) == 1:
             inputs = inputs.unsqueeze(0)
 

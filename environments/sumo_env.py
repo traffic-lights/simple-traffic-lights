@@ -1,16 +1,14 @@
 import json
-import os, sys
 import uuid
 from pathlib import Path
 
 import gym
 
 from settings import ENVIRONMENTS_FOLDER, init_sumo_tools
+from generators.vehicles_generator import VehiclesGenerator
 
 init_sumo_tools()
 import traci
-
-from generators.vehicles_generator import VehiclesGenerator
 
 
 class SumoEnvRunner(gym.Env):
@@ -18,7 +16,9 @@ class SumoEnvRunner(gym.Env):
         self.sumo_cmd = sumo_cmd
         self.unique_id = str(uuid.uuid4())
         traci.start(self.sumo_cmd, label=self.unique_id)
-        self.vehicle_generator = VehiclesGenerator.from_config_dict(vehicle_generator_config)
+        self.sumo_cmd.remove('sumo')
+        self.connection = traci.getConnection(self.unique_id)
+        self.vehicle_generator = VehiclesGenerator.from_config_dict(self.connection, vehicle_generator_config)
 
         self.was_step = False
 
@@ -29,14 +29,9 @@ class SumoEnvRunner(gym.Env):
 
         return state, reward, False, info
 
-    def take_traci_control(self):
-        traci.switch(self.unique_id)
-
     def reset(self):
-        self.take_traci_control()
         if self.was_step:
-            traci.close()
-            traci.start(self.sumo_cmd, label=self.unique_id)
+            self.connection.load(self.sumo_cmd)
         self.was_step = False
         self._reset()
 
@@ -48,11 +43,12 @@ class SumoEnvRunner(gym.Env):
         pass
 
     def close(self):
-        self.take_traci_control()
-        traci.close()
+        self.connection.close()
+
+
 
     def _generate_vehicles(self):
-        current_time = traci.simulation.getTime()
+        current_time = self.connection.simulation.getTime()
         self.vehicle_generator.generate_vehicles(current_time)
 
     def _snap_state(self):
@@ -97,7 +93,7 @@ class SumoEnv:
         sumo_cmd = [
             sumo_binary,
             "-c",
-            self.sumocfg_file_path,
+            str(self.sumocfg_file_path),
             "--no-step-log",
             "true",
             "--time-to-teleport",

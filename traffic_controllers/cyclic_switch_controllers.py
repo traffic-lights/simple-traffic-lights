@@ -1,7 +1,7 @@
-from settings import init_sumo_tools
+from abc import ABC
+from dataclasses import dataclass
 
-init_sumo_tools()
-import traci
+from traffic_controllers.trafffic_controller import TrafficController
 
 
 class CyclicSwitchControllerI:
@@ -23,20 +23,30 @@ class CyclicSwitchControllerI:
         return self.actions[self.iter]
 
 
-class TimedCyclicSwitchController(CyclicSwitchControllerI):
-    def __init__(self, actions, switch_periods_in_s):
-        super(TimedCyclicSwitchController, self).__init__(actions)
+class TimedCyclicSwitchControllerRunner(CyclicSwitchControllerI):
+    def __init__(self, connection, actions, switch_periods_in_s):
+        super().__init__(actions)
+        self.connection = connection
         self.switch_periods_in_s = switch_periods_in_s[-1:] + switch_periods_in_s[:-1]
         self.last_switch_time = 0
 
     def _check_is_wait_period_over_and_update(self):
-        return traci.simulation.getTime() - self.last_switch_time >= self.switch_periods_in_s[self.iter]
+        return self.connection.simulation.getTime() - self.last_switch_time >= self.switch_periods_in_s[self.iter]
 
     def _reset_period(self):
-        self.last_switch_time = traci.simulation.getTime()
+        self.last_switch_time = self.connection.simulation.getTime()
 
 
-class CallCounterCyclicSwitchController(CyclicSwitchControllerI):
+@dataclass
+class TimedCyclicSwitchController(TrafficController):
+    actions: list
+    switch_periods_in_s: list
+
+    def with_connection(self, connection):
+        return TimedCyclicSwitchControllerRunner(connection, self.actions, self.switch_periods_in_s)
+
+
+class CallCounterCyclicSwitchController(CyclicSwitchControllerI, TrafficController):
     def __init__(self, actions, nums_calls_before_reset):
         super(CallCounterCyclicSwitchController, self).__init__(actions)
         self.nums_calls_before_reset = nums_calls_before_reset

@@ -1,6 +1,6 @@
 from generators.lane import Lane
 from generators.vehicles_generator import VehiclesGenerator
-import traci
+import connection
 
 
 class XMLGenerator(VehiclesGenerator):
@@ -8,7 +8,7 @@ class XMLGenerator(VehiclesGenerator):
         if not active:
             return
 
-        spawn_period = traci.lane.getParameter(lane, "period")
+        spawn_period = connection.lane.getParameter(lane, "period")
 
         try:
             spawn_period = int(spawn_period)

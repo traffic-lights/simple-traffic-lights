@@ -122,13 +122,13 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
-                if evaluator is not None and params.total_steps % params.test_freq == 0:
-                    evaluator.evaluate_to_tensorboard(
-                        ModelController(training_state.model.eval()),
-                        writer,
-                        params.total_steps
-                    )
-                    training_state.model = training_state.model.train()
+                    if evaluator is not None and params.total_steps % params.test_freq == 0:
+                        evaluator.evaluate_to_tensorboard(
+                            {'model': ModelController(training_state.model.eval(), device)},
+                            writer,
+                            params.total_steps
+                        )
+                        training_state.model = training_state.model.train()
 
             writer.flush()
 

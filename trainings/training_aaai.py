@@ -80,11 +80,12 @@ def get_frap_training():
 
 def train_aaai():
     env_config_path = Path(JSONS_FOLDER, 'configs', 'aaai_random.json')
-    # evaluator = Evaluator.from_file()
+    evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', 'example_test.json'))
     main_train(
         get_frap_training(),
         SumoEnv.from_config_file(env_config_path),
-        Path('saved', 'aaai', 'frap')
+        evaluator,
+        Path('saved', 'aaai', 'frap'),
     )
 
 

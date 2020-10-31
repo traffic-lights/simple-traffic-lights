@@ -3,7 +3,8 @@ from abc import abstractmethod
 
 
 class VehiclesGenerator(ABC):
-    def __init__(self, lanes):
+    def __init__(self, connection, lanes):
+        self.connection = connection
         self.lanes = {}
         self.last_spawns = {}
         self.lanes_periods = {}
@@ -12,16 +13,16 @@ class VehiclesGenerator(ABC):
             self.add_lane(**lane)
 
     @staticmethod
-    def from_config_dict(config_dict: dict):
+    def from_config_dict(connection, config_dict: dict):
         """
         Creates VehicleGenerator with type and lanes specified in config
-        :param traci:
+        :param connection:
         :param config_dict: {'type': 'const', 'lanes': [{''}]}
         :return:
         """
         from generators import GENERATORS_TYPE_MAPPER
 
-        return GENERATORS_TYPE_MAPPER[config_dict['type']](lanes=config_dict['lanes'])
+        return GENERATORS_TYPE_MAPPER[config_dict['type']](connection=connection, lanes=config_dict['lanes'])
 
     @abstractmethod
     def add_lane(self, *args, **kwargs):
