@@ -2,33 +2,26 @@ from pathlib import Path
 
 import torch
 
-from environments.aaai_env import AaaiEnv
-from environments.simple_env import SimpleEnv
+from evaluation.evaluator import Evaluator
+from traffic_controllers.cyclic_switch_controllers import TimedCyclicSwitchController
+from traffic_controllers.model_controller import ModelController
+from traffic_controllers.vehicle_number_controller import VehicleNumberController
+from phases import *
+
 from trainings.training_parameters import TrainingState
 
-state = TrainingState.from_path(
-    Path('saved', 'aaai', 'frap', 'frap_2020-10-02.19-08-44-396561', 'states',
-         'ep_6_frap_2020-10-02.19-08-44-396561.tar'))
+controller1 = VehicleNumberController(get_phase_map())
+controller2 = TimedCyclicSwitchController(range(8), [5] * 8)
 
-model = state.model
+training_state = TrainingState.from_path(
+    Path('saved', 'aaai-random', 'frap', 'frap_2020-10-12.21-30-17-802491', 'states',
+         'ep_6_frap_2020-10-12.21-30-17-802491.tar'))
 
-with AaaiEnv(render=True, save_replay=False) as env:
-    state = env.reset()
-    ep_len = 0
-    done = False
+model_controller = ModelController(training_state.model)
 
-    prev_action = 0
+evaluator = Evaluator.from_file("test_framework/configs/test.json")
 
-    while not done:
-        ep_len += 1
-        tensor_state = torch.tensor([state], dtype=torch.float32)
-        action = model(tensor_state).max(1)[1][0].cpu().detach().numpy().item()
+metrics = evaluator.evaluate_traffic_controllers([model_controller, controller1, controller2])
 
-        next_state, reward, done, info = env.step(action)
-
-        state = next_state
-        if prev_action == action:
-            print("takie samo", action)
-        else:
-            print("rozne", action)
-        prev_action = action
+for m in metrics:
+    print(m)

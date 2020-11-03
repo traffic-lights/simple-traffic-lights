@@ -10,18 +10,18 @@ SIN_ARG_DIVIDER = 10000000
 
 
 class SinusoidalGenerator(VehiclesGenerator):
-    def __init__(self, lanes):
+    def __init__(self, connection, lanes):
         self.last_time = 0
         self.time_sum = 0
 
         self.sin_parameters = {}
-        super().__init__(lanes)
+        super().__init__(connection, lanes)
 
     def add_lane(self, lane, active, amplitude, multiplier, start, min):
         if not active:
             return
 
-        self.lanes[lane] = Lane(lane)
+        self.lanes[lane] = Lane(self.connection, lane)
         self.sin_parameters[lane] = SinParameters(amplitude / 2, multiplier, start, min)
         self.lanes_periods[lane] = self._calcualate_period(lane)
         self.last_spawns[lane] = 0

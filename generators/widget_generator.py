@@ -3,14 +3,14 @@ from generators.vehicles_generator import VehiclesGenerator
 
 
 class WidgetGenerator(VehiclesGenerator):
-    def __init__(self, lanes):
+    def __init__(self, connection, lanes):
         self.active_lanes = {}
-        super().__init__(lanes)
+        super().__init__(connection, lanes)
 
     def add_lane(self, lane, active, period):
         self.active_lanes[lane] = active
 
-        self.lanes[lane] = Lane(lane)
+        self.lanes[lane] = Lane(self.connection, lane)
         self.lanes_periods[lane] = period
         self.last_spawns[lane] = 0
 

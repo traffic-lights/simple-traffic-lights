@@ -7,7 +7,7 @@ class ConstGenerator(VehiclesGenerator):
         if not active:
             return
 
-        self.lanes[lane] = Lane(lane)
+        self.lanes[lane] = Lane(self.connection, lane)
         self.lanes_periods[lane] = period
         self.last_spawns[lane] = 0
 
