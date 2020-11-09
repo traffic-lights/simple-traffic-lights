@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import uuid
 from pathlib import Path
 
@@ -10,24 +11,36 @@ from generators.vehicles_generator import VehiclesGenerator
 init_sumo_tools()
 import traci
 
+semaphore = multiprocessing.Semaphore(1)
+
 
 class SumoEnvRunner(gym.Env):
-    def __init__(self, sumo_cmd, vehicle_generator_config):
+    def __init__(self, sumo_cmd, vehicle_generator_config, max_steps=None):
+        self.max_steps = max_steps
         self.sumo_cmd = sumo_cmd
-        self.unique_id = str(uuid.uuid4())
-        traci.start(self.sumo_cmd, label=self.unique_id)
-        self.sumo_cmd.remove('sumo')
-        self.connection = traci.getConnection(self.unique_id)
+        with semaphore:
+            self.unique_id = str(uuid.uuid4())
+            traci.start(self.sumo_cmd, label=self.unique_id)
+            if 'sumo' in self.sumo_cmd:
+                self.sumo_cmd.remove('sumo')
+            else:
+                self.sumo_cmd.remove('sumo-gui')
+            self.connection = traci.getConnection(self.unique_id)
         self.vehicle_generator = VehiclesGenerator.from_config_dict(self.connection, vehicle_generator_config)
 
+        self.num_steps = 0
         self.was_step = False
 
     def step(self, action):
+        self.num_steps += 1
         self.was_step = True
         reward, info = self._take_action(action)
         state = self._snap_state()
-
-        return state, reward, False, info
+        if self.max_steps is not None and self.num_steps >= self.max_steps:
+            done = True
+        else:
+            done = False
+        return state, reward, done, info
 
     def reset(self):
         if self.was_step:
@@ -36,7 +49,7 @@ class SumoEnvRunner(gym.Env):
         self._reset()
 
         self.vehicle_generator.reset()
-
+        self.num_steps = 0
         return self._snap_state()
 
     def render(self, mode='human'):
@@ -44,8 +57,6 @@ class SumoEnvRunner(gym.Env):
 
     def close(self):
         self.connection.close()
-
-
 
     def _generate_vehicles(self):
         current_time = self.connection.simulation.getTime()
@@ -62,25 +73,25 @@ class SumoEnvRunner(gym.Env):
 
 
 class SumoEnv:
-    def __init__(self, sumocfg_file_path, vehicle_generator_config):
+    def __init__(self, sumocfg_file_path, vehicle_generator_config, max_steps=None):
         super().__init__()
-
+        self.max_steps = max_steps
         self.vehicle_generator_config = vehicle_generator_config
         self.sumocfg_file_path = sumocfg_file_path
 
     @staticmethod
-    def from_config_file(file_path):
+    def from_config_file(file_path, max_steps=None):
         from environments import ENVIRONMENTS_TYPE_MAPPER
 
         with open(file_path) as f:
             config_dict = json.load(f)
-
         env_config = config_dict['environment']
         env_type = env_config['type']
         config_file_path = Path(ENVIRONMENTS_FOLDER, config_dict['config_file'])
         return ENVIRONMENTS_TYPE_MAPPER[env_type](
             sumocfg_file_path=config_file_path,
             vehicle_generator_config=config_dict['vehicle_generator'],
+            max_steps=max_steps,
             **env_config['additional_params'] if 'additional_params' else {}
         )
 
@@ -99,7 +110,7 @@ class SumoEnv:
             "--time-to-teleport",
             "-1",
             "--max-depart-delay",
-            "0"
+            "10"
         ]
 
         return self._instantiate_runner(sumo_cmd)

@@ -1,0 +1,8 @@
+{
+    "test_cases": [
+        {
+            "name": "random",
+            "config": "jsons/configs/aaai_random.json"
+        }
+    ]
+}

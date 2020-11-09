@@ -1,0 +1,88 @@
+{
+  "environment": {
+    "type": "aaai",
+    "additional_params": {
+      "traffic_movements": 12,
+      "traffic_lights_phases": 8,
+      "light_duration": 10
+    }
+  },
+  "config_file": "aaai/aaai.sumocfg",
+  "vehicle_generator": {
+    "type": "random",
+    "lanes": [
+      {
+        "lane": "gneE15_0",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE15_1",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE15_2",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE17_0",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      },
+      {
+        "lane": "gneE17_1",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      },
+      {
+        "lane": "gneE17_2",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      },
+      {
+        "lane": "gneE19_0",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE19_1",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE19_2",
+        "active": true,
+        "min_period": 20,
+        "max_period": 25
+      },
+      {
+        "lane": "gneE21_0",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      },
+      {
+        "lane": "gneE21_1",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      },
+      {
+        "lane": "gneE21_2",
+        "active": true,
+        "min_period": 1,
+        "max_period": 10
+      }
+    ]
+  }
+}

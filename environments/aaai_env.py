@@ -1,3 +1,8 @@
+from collections import namedtuple
+from dataclasses import dataclass
+
+import numpy as np
+
 from environments.sumo_env import SumoEnv, SumoEnvRunner
 from gym import error, spaces, utils
 
@@ -7,19 +12,25 @@ LIGHT_DURATION = 10
 
 
 class AaaiEnvRunner(SumoEnvRunner):
-    def __init__(self, sumo_cmd, vehicle_generator_config, traffic_movements, traffic_lights_phases,
-                 light_duration):
-        super().__init__(sumo_cmd, vehicle_generator_config)
-
+    def __init__(self, sumo_cmd,
+                 vehicle_generator_config,
+                 traffic_movements,
+                 traffic_lights_phases,
+                 light_duration,
+                 max_steps=None):
+        super().__init__(sumo_cmd, vehicle_generator_config, max_steps)
         self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
         self.action_space = spaces.Discrete(traffic_lights_phases)
         self.tls_id = self.connection.trafficlight.getIDList()[0]
         self.light_duration = light_duration
+
         self.previous_action = 0
         self.traveling_cars = {}
 
         self.travel_time = 0
         self.throughput = 0
+
+        self.restarted = True
 
     def _snap_state(self):
         pressures = [self.previous_action]
@@ -32,7 +43,29 @@ class AaaiEnvRunner(SumoEnvRunner):
                         entry_tuple[0]
                     ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
                     pressures.append(my_pressure)
-        return pressures
+        return np.array(pressures, dtype=np.float32)
+
+    def _simulate_step(self):
+        arrived_cars = set()
+
+        accumulated_travel_time = 0
+
+        self._generate_vehicles()
+        time = self.connection.simulation.getTime()
+
+        for car in self.connection.simulation.getDepartedIDList():
+            self.traveling_cars[car] = time
+
+        if not self.restarted:
+            for car in self.connection.simulation.getArrivedIDList():
+                arrived_cars.add(car)
+
+                accumulated_travel_time += time - self.traveling_cars[car]
+                del self.traveling_cars[car]
+
+        self.connection.simulationStep()
+        self.restarted = False
+        return arrived_cars, accumulated_travel_time
 
     def _take_action(self, action):
         arrived_cars = set()
@@ -41,24 +74,14 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         # turn yellow light if different action
 
-        if self.previous_action != action:
+        if self.previous_action != action and not self.restarted:
             self.connection.trafficlight.setPhase(self.tls_id, 2 * self.previous_action + 1)
             start_time = self.connection.simulation.getTime()
             dur = self.connection.trafficlight.getPhaseDuration(self.tls_id)
             while self.connection.simulation.getTime() - start_time < dur - 0.1:
-                self._generate_vehicles()
-                time = self.connection.simulation.getTime()
-
-                for car in self.connection.simulation.getDepartedIDList():
-                    self.traveling_cars[car] = time
-
-                for car in self.connection.simulation.getArrivedIDList():
-                    arrived_cars.add(car)
-
-                    accumulated_travel_time += time - self.traveling_cars[car]
-                    del self.traveling_cars[car]
-
-                self.connection.simulationStep()
+                my_cars, my_time = self._simulate_step()
+                arrived_cars |= my_cars
+                accumulated_travel_time += my_time
 
         self.previous_action = action
 
@@ -67,19 +90,9 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         start_time = self.connection.simulation.getTime()
         while self.connection.simulation.getTime() - start_time < self.light_duration - 0.1:
-            self._generate_vehicles()
-            time = self.connection.simulation.getTime()
-
-            for car in self.connection.simulation.getDepartedIDList():
-                self.traveling_cars[car] = time
-
-            for car in self.connection.simulation.getArrivedIDList():
-                arrived_cars.add(car)
-
-                accumulated_travel_time += time - self.traveling_cars[car]
-                del self.traveling_cars[car]
-
-            self.connection.simulationStep()
+            my_cars, my_time = self._simulate_step()
+            arrived_cars |= my_cars
+            accumulated_travel_time += my_time
 
         incomings = set()
         outgoings = set()
@@ -106,11 +119,18 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.travel_time += accumulated_travel_time
         reward = -pressure
-        return reward, pressure
+        return reward, {'reward': reward,
+                        'pressure': pressure,
+                        'travel_time': self.get_travel_time(),
+                        'throughput': self.get_throughput()
+                        }
 
     def _reset(self):
         self.travel_time = 0
         self.throughput = 0
+        self.previous_action = 0
+        self.traveling_cars = {}
+        self.restarted = True
 
     def get_throughput(self):
         return self.throughput
@@ -129,14 +149,16 @@ class AaaiEnv(SumoEnv):
             self.vehicle_generator_config,
             self.traffic_movements,
             self.traffic_lights_phases,
-            self.light_duration
+            self.light_duration,
+            self.max_steps
         )
 
     def __init__(self, sumocfg_file_path, vehicle_generator_config,
+                 max_steps=None,
                  traffic_movements=TRAFFIC_MOVEMENTS,
                  traffic_lights_phases=TRAFFICLIGHTS_PHASES,
                  light_duration=LIGHT_DURATION):
-        super().__init__(sumocfg_file_path, vehicle_generator_config)
+        super().__init__(sumocfg_file_path, vehicle_generator_config, max_steps)
         self.traffic_movements = traffic_movements
         self.traffic_lights_phases = traffic_lights_phases
         self.light_duration = light_duration

@@ -14,7 +14,7 @@ class SerializableModel(nn.Module):
     @classmethod
     def load_from_dict(cls, dict_to_load):
         model = cls(**dict_to_load['init_params'])
-        model.load_state_dict(dict_to_load['state_dict'])
+        model.load_state_dict(dict_to_load['state_dict'], strict=False)
         return model
 
 
