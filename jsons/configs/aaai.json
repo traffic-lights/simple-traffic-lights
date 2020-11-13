@@ -4,7 +4,7 @@
     "additional_params": {
       "traffic_movements": 12,
       "traffic_lights_phases": 8,
-      "light_duration": 10
+      "light_duration": 1
     }
   },
   "config_file": "aaai/aaai.sumocfg",

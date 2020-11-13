@@ -1,9 +1,11 @@
 from pathlib import Path
+from time import sleep
 
 from torch.nn import MSELoss
 from torch.optim import Adam
 
 from environments.sumo_env import SumoEnv
+from evaluation.evaluator import Evaluator
 from memory.prioritized_memory import Memory
 from models.frap import Frap
 from models.neural_net import SimpleLinear
@@ -51,7 +53,8 @@ def get_frap_training():
         pre_train_steps=1500,
         tau=0.001,
         lr=0.0001,
-        save_freq=1
+        save_freq=1,
+        test_freq=50
     )
 
     memory = Memory(training_param.memory_size)
@@ -77,7 +80,13 @@ def get_frap_training():
 
 def train_aaai():
     env_config_path = Path(JSONS_FOLDER, 'configs', 'aaai_random.json')
-    main_train(get_frap_training(), SumoEnv.from_config_file(env_config_path), Path('saved', 'aaai', 'frap'))
+    evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', 'example_test.json'))
+    main_train(
+        get_frap_training(),
+        SumoEnv.from_config_file(env_config_path),
+        evaluator,
+        Path('saved', 'aaai', 'frap'),
+    )
 
 
 if __name__ == '__main__':

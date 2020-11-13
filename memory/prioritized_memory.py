@@ -5,6 +5,7 @@ import numpy as np
 
 from memory.PER import PER
 
+
 class Memory:
     def get_save_dict(self):
         return {
@@ -88,8 +89,7 @@ class PrioritizedMemBatchSampler:
         if self.i_batch < self.num_batches:
             self.i_batch += 1
             output_dict = {}
-
-            my_batch = np.array(self.buffer.sample(self.batch_size))
+            my_batch = np.array(self.buffer.sample(self.batch_size), dtype=object)
             for i, (name, d_type) in enumerate(zip(self.order, self.d_types)):
                 my_vals = np.stack(my_batch[:, i])
                 output_dict[name] = torch.tensor(my_vals, dtype=d_type, device=self.device)

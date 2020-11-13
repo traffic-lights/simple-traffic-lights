@@ -15,73 +15,73 @@
         "lane": "gneE15_0",
         "active": true,
         "min_period": 5,
-        "max_period": 10
+        "max_period": 5
       },
       {
         "lane": "gneE15_1",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 15,
+        "max_period": 25
       },
       {
         "lane": "gneE15_2",
         "active": true,
-        "min_period": 15,
-        "max_period": 25
+        "min_period": 25,
+        "max_period": 40
       },
       {
         "lane": "gneE17_0",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 7,
+        "max_period": 7
       },
       {
         "lane": "gneE17_1",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 15,
+        "max_period": 25
       },
       {
         "lane": "gneE17_2",
         "active": true,
-        "min_period": 15,
-        "max_period": 25
+        "min_period": 25,
+        "max_period": 40
       },
       {
         "lane": "gneE19_0",
         "active": true,
         "min_period": 5,
-        "max_period": 10
+        "max_period": 5
       },
       {
         "lane": "gneE19_1",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 15,
+        "max_period": 25
       },
       {
         "lane": "gneE19_2",
         "active": true,
-        "min_period": 15,
-        "max_period": 20
+        "min_period": 25,
+        "max_period": 40
       },
       {
         "lane": "gneE21_0",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 6,
+        "max_period": 6
       },
       {
         "lane": "gneE21_1",
         "active": true,
-        "min_period": 10,
-        "max_period": 15
+        "min_period": 15,
+        "max_period": 25
       },
       {
         "lane": "gneE21_2",
         "active": true,
-        "min_period": 15,
-        "max_period": 25
+        "min_period": 25,
+        "max_period": 40
       }
     ]
   }

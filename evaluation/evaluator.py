@@ -55,13 +55,15 @@ class Evaluator:
         for env_name, env in self.environments.items():
             with env.create_runner(render=False) as runner:
                 for i_controller, controller in enumerate(traffic_controllers):
-                    metrics[i_controller][env_name] = evaluate_controller(runner, controller, max_ep_len=300)
+                    metrics[i_controller][env_name] = evaluate_controller(runner,
+                                                                          controller.with_connection(runner.connection),
+                                                                          max_ep_len=300)
 
         return metrics
 
     def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step):
-        controller_names = traffic_controllers_dict.keys()
-        controllers = traffic_controllers_dict.valies()
+        controller_names = list(traffic_controllers_dict.keys())
+        controllers = list(traffic_controllers_dict.values())
 
         metrics = self.evaluate_traffic_controllers(controllers)
 

@@ -3,8 +3,7 @@ import torch.nn.functional as F
 import torch
 
 from models.neural_net import SerializableModel
-
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+from rlpyt.utils.tensor import infer_leading_dims, restore_leading_dims
 
 
 class Frap(SerializableModel):
@@ -30,8 +29,13 @@ class Frap(SerializableModel):
 
         return nn.Sequential(*relation_conv)
 
-    def __init__(self, relation_embedding_size, demand_vec_size,
-                 demand_hidden, num_conv_layers, conv_channels_size, output_mean=True):
+    def __init__(self, relation_embedding_size=32,
+                 demand_vec_size=16,
+                 demand_hidden=16,
+                 num_conv_layers=2,
+                 conv_channels_size=16,
+                 output_mean=True
+                 ):
         super().__init__()
         self.output_mean = output_mean
         self.conv_channels_size = conv_channels_size
@@ -44,6 +48,20 @@ class Frap(SerializableModel):
         self.phase_s = nn.Linear(1, demand_hidden, bias=True)
         self.phase_d = nn.Linear(demand_hidden * 2, demand_vec_size, bias=True)
 
+        # 0 - light gray -> phases share one traffic movement [partial competing]
+        # 1 - gray -> competing, phases are totally conflict [competing]
+        self.competing_matrix = nn.Parameter(
+            torch.tensor([
+                [0, 0, 1, 1, 1, 1, 1],
+                [0, 1, 0, 1, 1, 1, 1],
+                [0, 1, 0, 1, 1, 1, 1],
+                [1, 0, 0, 1, 1, 1, 1],
+                [1, 1, 1, 1, 0, 0, 1],
+                [1, 1, 1, 1, 0, 1, 0],
+                [1, 1, 1, 1, 0, 1, 0],
+                [1, 1, 1, 1, 1, 0, 0],
+            ]), False)
+
         self.rel_embedding = nn.Embedding(3, relation_embedding_size)
 
         self.relation_conv = self._create_conv(relation_embedding_size, num_conv_layers, conv_channels_size)
@@ -51,7 +69,7 @@ class Frap(SerializableModel):
 
         self.last_conv = nn.Conv2d(conv_channels_size, 1, 1)
 
-        #CONSTANTS
+        # CONSTANTS
         self.worth_movements = [1, 2, 4, 5, 7, 8, 10, 11]
 
         self.num_phases = 8
@@ -68,25 +86,14 @@ class Frap(SerializableModel):
             7: (8, 2)
         }
 
-        # 0 - light gray -> phases share one traffic movement [partial competing]
-        # 1 - gray -> competing, phases are totally conflict [competing]
-        self.competing_matrix = torch.tensor([
-            [0, 0, 1, 1, 1, 1, 1],
-            [0, 1, 0, 1, 1, 1, 1],
-            [0, 1, 0, 1, 1, 1, 1],
-            [1, 0, 0, 1, 1, 1, 1],
-            [1, 1, 1, 1, 0, 0, 1],
-            [1, 1, 1, 1, 0, 1, 0],
-            [1, 1, 1, 1, 0, 1, 0],
-            [1, 1, 1, 1, 1, 0, 0],
-        ], device=device)
-
     def _calc_deamand(self, curr_phases, pressure):
         h_v = F.relu(self.phase_v(pressure))
         h_s = F.relu(self.phase_s(curr_phases))
         return F.relu(self.phase_d(torch.cat([h_v, h_s], dim=1)))
 
-    def forward(self, pressures):
+    def forward(self, pressures, prev_action=None, prev_reward=None):
+        lead_dim, T, B, pressures_shape = infer_leading_dims(pressures, 1)
+        pressures = pressures.view(T * B, *pressures_shape)
         curr_phases = pressures[:, 0].unsqueeze(-1)
         phases_pressures = pressures[:, 1:]
         saved_demands = dict()
@@ -103,13 +110,12 @@ class Frap(SerializableModel):
         for p in range(self.num_phases):
             tmp2 = []
             for q in range(self.num_phases):
-                if q != p:                    
+                if q != p:
                     tmp2.append(torch.cat([phase_demands[p], phase_demands[q]], dim=1).unsqueeze(1).unsqueeze(1))
-                    
+
             tmp.append(torch.cat(tmp2, dim=2))
 
         demand_embedding = torch.cat(tmp, dim=1)
-
         relation_embedding = self.rel_embedding(self.competing_matrix).unsqueeze(0)
 
         relation_conv_out = self.relation_conv(relation_embedding.permute(0, 3, 1, 2).contiguous())
@@ -120,6 +126,8 @@ class Frap(SerializableModel):
         phase_competition = self.last_conv(phase_competition).squeeze(1)
 
         if self.output_mean:
-            return phase_competition.mean(dim=2)
+            phase_competition = phase_competition.mean(dim=2)
         else:
-            return phase_competition.sum(dim=2)
+            phase_competition = phase_competition.sum(dim=2)
+
+        return restore_leading_dims(phase_competition, lead_dim, T, B)

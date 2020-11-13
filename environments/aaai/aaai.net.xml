@@ -135,7 +135,7 @@
 
     <tlLogic id="gneJ18" type="static" programID="0" offset="0">
         <phase duration="40" state="GrrGGrGrrGGr"/>
-        <phase duration="6"  state="GrrGyrGrrGyr"/>
+        <phase duration="3"  state="GrrGyrGrrGyr"/>
         <phase duration="40" state="GrrGGGGrrGrr"/>
         <phase duration="3"  state="GrrGyyGrrGrr"/>
         <phase duration="40" state="GrrGrrGrrGGG"/>

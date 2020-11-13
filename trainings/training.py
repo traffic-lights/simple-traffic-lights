@@ -10,11 +10,13 @@ from torch.optim import Adam
 
 from environments.simple_env import SimpleEnv
 from environments.sumo_env import SumoEnv
+from evaluation.evaluator import Evaluator
 from memory.prioritized_memory import Memory
 from models.frap import Frap
 from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
+from traffic_controllers.model_controller import ModelController
 from trainings.training_parameters import TrainingParameters, TrainingState
 
 
@@ -54,38 +56,12 @@ def update_target_net(net, target_net, tau):
         target_param.data.copy_(tau * param.data + target_param.data * (1.0 - tau))
 
 
-def test_model(net, runner, max_ep_len, device, should_random=False):
-    net = net.eval()
-    rewards = []
-
-    with torch.no_grad():
-
-        state = runner.reset()
-        ep_len = 0
-        done = False
-
-        while not done and ep_len < max_ep_len:
-            if should_random:
-                action = runner.action_space.sample()
-            else:
-                tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
-                action = net(tensor_state).max(1)[1].cpu().detach().numpy()[0]
-            state, reward, done, info = runner.step(action)
-            rewards.append(reward)
-            ep_len += 1
-
-        return {
-            'throughput': runner.get_throughput(),
-            'travel_time': runner.get_travel_time(),
-            'mean_reward': np.mean(rewards)
-        }
-
-
 def get_model_name(suffix):
     return suffix + '_' + datetime.now().strftime("%Y-%m-%d.%H-%M-%S-%f")
 
 
-def main_train(training_state: TrainingState, env:SumoEnv, save_root=Path('saved', 'old_models')):
+def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator = None,
+               save_root=Path('saved', 'old_models')):
     params = training_state.training_parameters
 
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -100,7 +76,6 @@ def main_train(training_state: TrainingState, env:SumoEnv, save_root=Path('saved
 
     state_save_root = Path(save_root, 'states')
     state_save_root.mkdir(exist_ok=True, parents=True)
-
 
     tensorboard_save_root = Path(save_root, 'tensorboard')
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
@@ -147,22 +122,13 @@ def main_train(training_state: TrainingState, env:SumoEnv, save_root=Path('saved
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
-            if params.total_steps < params.pre_train_steps:
-                random_test = True
-            else:
-                random_test = False
-
-            test_stats = test_model(training_state.model, runner, params.max_ep_len, device,
-                                    random_test)
-
-            training_state.model = training_state.model.train()
-
-            for k, v in test_stats.items():
-                if random_test:
-                    name = 'Test/random/{}'.format(k)
-                else:
-                    name = 'Test/model/{}'.format(k)
-                writer.add_scalar(name, v, params.current_episode)
+                    if evaluator is not None and params.total_steps % params.test_freq == 0:
+                        evaluator.evaluate_to_tensorboard(
+                            {'model': ModelController(training_state.model.eval(), device)},
+                            writer,
+                            params.total_steps
+                        )
+                        training_state.model = training_state.model.train()
 
             writer.flush()
 

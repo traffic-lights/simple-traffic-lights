@@ -1,0 +1,32 @@
+{
+    "test_cases": [
+        {
+            "name": "all_equal",
+            "config": "jsons/configs/example_test_all_equal.json"
+        },
+        {
+            "name": "more_from_north",
+            "config": "jsons/configs/example_test_more_from_north.json"
+        },
+        {
+            "name": "more_from_east",
+            "config": "jsons/configs/example_test_more_from_east.json"
+        },
+        {
+            "name": "more_from_south",
+            "config": "jsons/configs/example_test_more_from_south.json"
+        },
+        {
+            "name": "more_from_west",
+            "config": "jsons/configs/example_test_more_from_west.json"
+        },
+        {
+            "name": "more_vertically",
+            "config": "jsons/configs/example_test_more_vertically.json"
+        },
+        {
+            "name": "more_horizontally",
+            "config": "jsons/configs/example_test_more_horizontally.json"
+        }
+    ]
+}
