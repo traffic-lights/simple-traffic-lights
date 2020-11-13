@@ -49,8 +49,6 @@ def build_and_train(game="aaai_env", run_ID=0):
         'more_south': Path(JSONS_FOLDER, 'configs', 'example_test_more_from_south.json')
     })
 
-    SerialSampler
-
     sampler = AsyncGpuSampler(
 
         EnvCls=Rlpyt_env,
@@ -84,6 +82,7 @@ def build_and_train(game="aaai_env", run_ID=0):
         pri_beta_final=1.,
         pri_beta_steps=int(8e5)
     )
+
     agent = DqnAgent(ModelCls=Frap)
 
     runner = AsyncRlEval(
