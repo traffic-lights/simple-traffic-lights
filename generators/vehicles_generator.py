@@ -35,7 +35,6 @@ class VehiclesGenerator(ABC):
     def _create_vehicle(self, lane_id, lane, time):
         dt = time - self.last_spawns[lane_id]
         if (dt >= self.lanes_periods[lane_id]) or self.last_spawns[lane_id] == 0:
-            # print(f"{time - self.last_spawns[lane_id]} {self.lanes_periods[lane_id]}")
             lane.add_car()
             self.last_spawns[lane_id] = time
             return True

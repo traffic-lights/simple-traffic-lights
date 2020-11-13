@@ -53,7 +53,6 @@ class Frap(SerializableModel):
                  conv_channels_size=16,
                  output_mean=True
                  ):
-        print("creating FRAP")
         super().__init__()
         self.output_mean = output_mean
         self.conv_channels_size = conv_channels_size

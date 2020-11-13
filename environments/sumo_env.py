@@ -15,9 +15,15 @@ semaphore = multiprocessing.Semaphore(1)
 
 
 class SumoEnvRunner(gym.Env):
-    def __init__(self, sumo_cmd, vehicle_generator_config, max_steps=None):
+    def __init__(self,
+                 sumo_cmd,
+                 vehicle_generator_config,
+                 max_steps=None,
+                 env_name=None
+                 ):
         self.max_steps = max_steps
         self.sumo_cmd = sumo_cmd
+        self.env_name = env_name
         with semaphore:
             self.unique_id = str(uuid.uuid4())
             traci.start(self.sumo_cmd, label=self.unique_id)
@@ -40,6 +46,8 @@ class SumoEnvRunner(gym.Env):
             done = True
         else:
             done = False
+
+        info['env_name'] = self.env_name
         return state, reward, done, info
 
     def reset(self):
@@ -73,14 +81,15 @@ class SumoEnvRunner(gym.Env):
 
 
 class SumoEnv:
-    def __init__(self, sumocfg_file_path, vehicle_generator_config, max_steps=None):
+    def __init__(self, sumocfg_file_path, vehicle_generator_config, max_steps=None, env_name=None):
         super().__init__()
         self.max_steps = max_steps
         self.vehicle_generator_config = vehicle_generator_config
         self.sumocfg_file_path = sumocfg_file_path
+        self.env_name = env_name
 
     @staticmethod
-    def from_config_file(file_path, max_steps=None):
+    def from_config_file(file_path, max_steps=None, env_name=None):
         from environments import ENVIRONMENTS_TYPE_MAPPER
 
         with open(file_path) as f:
@@ -92,6 +101,7 @@ class SumoEnv:
             sumocfg_file_path=config_file_path,
             vehicle_generator_config=config_dict['vehicle_generator'],
             max_steps=max_steps,
+            env_name=env_name,
             **env_config['additional_params'] if 'additional_params' else {}
         )
 

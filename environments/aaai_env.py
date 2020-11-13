@@ -6,19 +6,23 @@ import numpy as np
 from environments.sumo_env import SumoEnv, SumoEnvRunner
 from gym import error, spaces, utils
 
+from traci import TraCIException
+
 TRAFFIC_MOVEMENTS = 12
 TRAFFICLIGHTS_PHASES = 8
 LIGHT_DURATION = 10
 
 
 class AaaiEnvRunner(SumoEnvRunner):
-    def __init__(self, sumo_cmd,
+    def __init__(self,
+                 sumo_cmd,
                  vehicle_generator_config,
                  traffic_movements,
                  traffic_lights_phases,
                  light_duration,
-                 max_steps=None):
-        super().__init__(sumo_cmd, vehicle_generator_config, max_steps)
+                 max_steps=None,
+                 env_name=None):
+        super().__init__(sumo_cmd, vehicle_generator_config, max_steps, env_name=env_name)
         self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
         self.action_space = spaces.Discrete(traffic_lights_phases)
         self.tls_id = self.connection.trafficlight.getIDList()[0]
@@ -49,6 +53,7 @@ class AaaiEnvRunner(SumoEnvRunner):
         arrived_cars = set()
 
         accumulated_travel_time = 0
+        accumulated_waiting_time = 0
 
         self._generate_vehicles()
         time = self.connection.simulation.getTime()
@@ -61,7 +66,18 @@ class AaaiEnvRunner(SumoEnvRunner):
                 arrived_cars.add(car)
 
                 accumulated_travel_time += time - self.traveling_cars[car]
+                # try:
+                #     print(car, self.connection.vehicle.getAccumulatedWaitingTime(car))
+                # except TraCIException as e:
+                #     pass
                 del self.traveling_cars[car]
+
+        # for l_id in self.vehicle_generator.lanes.keys():
+        #     print("lane id: {}, time: {}".format(l_id, self.connection.lane.getWaitingTime(l_id)))
+
+        # my_travel_time = sum([self.connection.lane.getTraveltime(l_id) for l_id in self.vehicle_generator.lanes.keys()])
+
+        # print(my_travel_time, accumulated_travel_time)
 
         self.connection.simulationStep()
         self.restarted = False
@@ -119,11 +135,13 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.travel_time += accumulated_travel_time
         reward = -pressure
-        return reward, {'reward': reward,
-                        'pressure': pressure,
-                        'travel_time': self.get_travel_time(),
-                        'throughput': self.get_throughput()
-                        }
+
+        return reward, {
+            'reward': reward,
+            'pressure': pressure,
+            'travel_time': self.get_travel_time(),
+            'throughput': self.get_throughput()
+        }
 
     def _reset(self):
         self.travel_time = 0
@@ -150,15 +168,16 @@ class AaaiEnv(SumoEnv):
             self.traffic_movements,
             self.traffic_lights_phases,
             self.light_duration,
-            self.max_steps
+            self.max_steps,
+            self.env_name
         )
 
     def __init__(self, sumocfg_file_path, vehicle_generator_config,
-                 max_steps=None,
+                 max_steps=None, env_name=None,
                  traffic_movements=TRAFFIC_MOVEMENTS,
                  traffic_lights_phases=TRAFFICLIGHTS_PHASES,
                  light_duration=LIGHT_DURATION):
-        super().__init__(sumocfg_file_path, vehicle_generator_config, max_steps)
+        super().__init__(sumocfg_file_path, vehicle_generator_config, max_steps, env_name=env_name)
         self.traffic_movements = traffic_movements
         self.traffic_lights_phases = traffic_lights_phases
         self.light_duration = light_duration
