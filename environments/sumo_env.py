@@ -38,14 +38,9 @@ class SumoEnvRunner(gym.Env):
         self.was_step = False
 
     def step(self, action):
-        self.num_steps += 1
         self.was_step = True
-        reward, info = self._take_action(action)
+        done, reward, info = self._take_action(action)
         state = self._snap_state()
-        if self.max_steps is not None and self.num_steps >= self.max_steps:
-            done = True
-        else:
-            done = False
 
         info['env_name'] = self.env_name
         return state, reward, done, info
@@ -89,7 +84,7 @@ class SumoEnv:
         self.env_name = env_name
 
     @staticmethod
-    def from_config_file(file_path, max_steps=None, env_name=None):
+    def from_config_file(file_path, max_steps=1500, env_name=None):
         from environments import ENVIRONMENTS_TYPE_MAPPER
 
         with open(file_path) as f:

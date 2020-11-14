@@ -33,7 +33,7 @@ class Lane:
             vehID=car_id,
             routeID=self.route_id,
             departLane=self.index,
-            departSpeed="max",
+            departSpeed='2',
         )
 
     def reset_spawning_data(self):
