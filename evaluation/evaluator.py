@@ -7,13 +7,13 @@ from settings import PROJECT_ROOT
 import numpy as np
 
 
-def evaluate_controller(runner, controller, max_ep_len):
+def evaluate_controller(runner, controller):
     state = runner.reset()
     ep_len = 0
     done = False
     rewards = []
 
-    while not done and ep_len < max_ep_len:
+    while not done:
         action = controller(state)
 
         state, reward, done, info = runner.step(action)
@@ -56,8 +56,7 @@ class Evaluator:
             with env.create_runner(render=False) as runner:
                 for i_controller, controller in enumerate(traffic_controllers):
                     metrics[i_controller][env_name] = evaluate_controller(runner,
-                                                                          controller.with_connection(runner.connection),
-                                                                          max_ep_len=300)
+                                                                          controller.with_connection(runner.connection))
 
         return metrics
 

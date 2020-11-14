@@ -52,17 +52,24 @@ model_w = torch.load(model_path, map_location='cpu')
 model5.load_state_dict(model_w['agent_state_dict']['model'])
 model5 = model5.eval()
 
+model6 = Frap()
+model_path = str(Path(PROJECT_ROOT, 'saved', 'rlpyt', 'async_dqn', '14-11-2020-all-red', 'params.pkl'))
+model_w = torch.load(model_path, map_location='cpu')
+model6.load_state_dict(model_w['agent_state_dict']['model'])
+model6 = model6.eval()
+
 model1_controller = ModelController(model1)
 model2_controller = ModelController(model2)
 model3_controller = ModelController(model3)
 model4_controller = ModelController(model4)
 model5_controller = ModelController(model5)
+model6_controller = ModelController(model6)
 
 metrics = evaluator.evaluate_traffic_controllers(
     [random_controller, controller1, controller2,
      controller3, model1_controller,
      model2_controller, model3_controller,
-     model4_controller, model5_controller]
+     model4_controller, model5_controller, model6_controller]
     # [model1_controller, model2_controller, model3_controller, controller1, controller2]
 )
 #
@@ -92,8 +99,8 @@ exit()
 #
 #     print("----")
 # #
-env = SumoEnv.from_config_file(Path(JSONS_FOLDER, 'configs', 'aaai_random.json'))
+env = SumoEnv.from_config_file(Path(JSONS_FOLDER, 'configs', 'example_test_more_vertically.json'))
 
 with env.create_runner(render=True) as runner:
     while True:
-        evaluate_controller(runner, model3_controller.with_connection(runner.connection), 300)
+        print(evaluate_controller(runner, model6_controller.with_connection(runner.connection)))
