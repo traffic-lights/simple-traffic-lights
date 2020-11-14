@@ -1,0 +1,51 @@
+{
+  "environment": {
+    "type": "aaai",
+    "additional_params": {
+      "traffic_movements": 12,
+      "traffic_lights_phases": 8,
+      "light_duration": 10
+    }
+  },
+  "config_file": "2v2/2v2.sumocfg",
+  "vehicle_generator": {
+    "type": "const",
+    "lanes": [
+      {
+        "lane": "gneE31_0",
+        "active": true,
+        "period": 12
+      },
+      {
+        "lane": "gneE29_0",
+        "active": true,
+        "period": 24
+      },
+      {
+        "lane": "gneE28_0",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "gneE27_0",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "-gneE25_0",
+        "active": true,
+        "period": 24
+      },
+      {
+        "lane": "gneE33_0",
+        "active": true,
+        "period": 20
+      },
+      {
+        "lane": "gneE32_0",
+        "active": true,
+        "period": 8
+      }
+    ]
+  }
+}

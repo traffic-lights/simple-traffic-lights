@@ -16,7 +16,10 @@ class SumoEnvRunner(gym.Env):
         self.sumo_cmd = sumo_cmd
         self.unique_id = str(uuid.uuid4())
         traci.start(self.sumo_cmd, label=self.unique_id)
-        self.sumo_cmd.remove('sumo')
+        if 'sumo' in sumo_cmd:
+            self.sumo_cmd.remove('sumo')
+        elif 'sumo-gui' in sumo_cmd:
+            self.sumo_cmd.remove('sumo-gui')
         self.connection = traci.getConnection(self.unique_id)
         self.vehicle_generator = VehiclesGenerator.from_config_dict(self.connection, vehicle_generator_config)
 

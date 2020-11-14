@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from typing import List
 
 import torch
 from torch import nn
@@ -70,6 +71,7 @@ class TrainingState:
     optimizer: Optimizer
     loss_fn: nn.Module
     replay_memory: Memory
+    junctions: List[str]
 
     def save(self, path):
         my_dict = {
@@ -78,7 +80,8 @@ class TrainingState:
             'optimizer': get_optimizer_dict(self.optimizer),
             'loss_fn': self.loss_fn,
             'replay_memory': self.replay_memory.get_save_dict(),
-            'training_parameters': asdict(self.training_parameters)
+            'training_parameters': asdict(self.training_parameters),
+            'junctions': self.junctions
         }
         torch.save(my_dict, path)
 
@@ -91,6 +94,9 @@ class TrainingState:
         optim = load_optim_from_dict(my_dict['optimizer'], model)
         mem = Memory.load_from_dict(my_dict['replay_memory'])
 
+        junctions = my_dict['junctions']
+        #junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
+
         training_parameters = TrainingParameters(**my_dict['training_parameters'])
 
         return TrainingState(
@@ -99,5 +105,6 @@ class TrainingState:
             target_model,
             optim,
             my_dict['loss_fn'],
-            mem
+            mem,
+            junctions
         )

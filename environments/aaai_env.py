@@ -13,100 +13,122 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
         self.action_space = spaces.Discrete(traffic_lights_phases)
-        self.tls_id = self.connection.trafficlight.getIDList()[0]
+        # self.tls_id = self.connection.trafficlight.getIDList()[0]
         self.light_duration = light_duration
-        self.previous_action = 0
+        self.previous_actions = {}
         self.traveling_cars = {}
 
         self.travel_time = 0
         self.throughput = 0
 
     def _snap_state(self):
-        pressures = [self.previous_action]
+        states = {
+            'gneJ25': [0]*13,
+            'gneJ26': [0]*13,
+            'gneJ27': [0]*13,
+            'gneJ28': [0]*13,
+        }
+        for tls_id, action in self.previous_actions.items():
+            pressures = [action]
 
-        for entry in self.connection.trafficlight.getControlledLinks(self.tls_id):
-            if entry:
-                entry_tuple = entry[0]
-                if entry_tuple:
-                    my_pressure = self.connection.lane.getLastStepVehicleNumber(
-                        entry_tuple[0]
-                    ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
-                    pressures.append(my_pressure)
-        return pressures
+            for entry in self.connection.trafficlight.getControlledLinks(tls_id):
+                if entry:
+                    entry_tuple = entry[0]
+                    if entry_tuple:
+                        my_pressure = self.connection.lane.getLastStepVehicleNumber(
+                            entry_tuple[0]
+                        ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
+                        pressures.append(my_pressure)
 
-    def _take_action(self, action):
+            states[tls_id] = pressures
+
+        return states
+
+    def _continue_simulation(self, arrived_cars, accumulated_travel_time):
+        self._generate_vehicles()
+        time = self.connection.simulation.getTime()
+
+        for car in self.connection.simulation.getDepartedIDList():
+            self.traveling_cars[car] = time
+
+        for car in self.connection.simulation.getArrivedIDList():
+            arrived_cars.add(car)
+
+            accumulated_travel_time += time - self.traveling_cars[car]
+            del self.traveling_cars[car]
+
+        self.connection.simulationStep()
+
+    def _take_action(self, actions):
         arrived_cars = set()
 
         accumulated_travel_time = 0
 
+        rewards = {}
+        pressures = {}
+
         # turn yellow light if different action
 
-        if self.previous_action != action:
-            self.connection.trafficlight.setPhase(self.tls_id, 2 * self.previous_action + 1)
-            start_time = self.connection.simulation.getTime()
-            dur = self.connection.trafficlight.getPhaseDuration(self.tls_id)
-            while self.connection.simulation.getTime() - start_time < dur - 0.1:
-                self._generate_vehicles()
-                time = self.connection.simulation.getTime()
+        if self.previous_actions:
 
-                for car in self.connection.simulation.getDepartedIDList():
-                    self.traveling_cars[car] = time
+            phase_changes = {}
 
-                for car in self.connection.simulation.getArrivedIDList():
-                    arrived_cars.add(car)
+            for tls_id, action in actions.items():
+                if action != self.previous_actions[tls_id]:
+                    phase_changes[tls_id] = self.previous_actions[tls_id]
 
-                    accumulated_travel_time += time - self.traveling_cars[car]
-                    del self.traveling_cars[car]
+            for tls_id, prev_action in phase_changes.items():
+                self.connection.trafficlight.setPhase(tls_id, 2 * prev_action + 1)
+                start_time = self.connection.simulation.getTime()
+                dur = self.connection.trafficlight.getPhaseDuration(tls_id)
 
-                self.connection.simulationStep()
+                while self.connection.simulation.getTime() - start_time < dur - 0.1:
+                    self._continue_simulation(arrived_cars, accumulated_travel_time)
 
-        self.previous_action = action
+        # turn green
 
-        self.connection.trafficlight.setPhase(self.tls_id, 2 * action)
-        self.connection.trafficlight.setPhaseDuration(self.tls_id, self.light_duration)
+        self.previous_actions = actions
+
+        for tls_id, action in actions.items():
+            self.connection.trafficlight.setPhase(tls_id, 2 * action)
+            self.connection.trafficlight.setPhaseDuration(tls_id, self.light_duration)
 
         start_time = self.connection.simulation.getTime()
+
         while self.connection.simulation.getTime() - start_time < self.light_duration - 0.1:
-            self._generate_vehicles()
-            time = self.connection.simulation.getTime()
+            self._continue_simulation(arrived_cars, accumulated_travel_time)
 
-            for car in self.connection.simulation.getDepartedIDList():
-                self.traveling_cars[car] = time
+        for tls_id in actions.keys():
 
-            for car in self.connection.simulation.getArrivedIDList():
-                arrived_cars.add(car)
+            incomings = set()
+            outgoings = set()
 
-                accumulated_travel_time += time - self.traveling_cars[car]
-                del self.traveling_cars[car]
+            for entry in self.connection.trafficlight.getControlledLinks(tls_id):
+                if entry:
+                    entry_tuple = entry[0]
+                    if entry_tuple:
+                        incomings.add(entry_tuple[0])
+                        outgoings.add(entry_tuple[1])
 
-            self.connection.simulationStep()
+            incomings_sum = 0
+            outgoings_sum = 0
 
-        incomings = set()
-        outgoings = set()
+            for incoming in incomings:
+                incomings_sum += self.connection.lane.getLastStepVehicleNumber(incoming)
 
-        for entry in self.connection.trafficlight.getControlledLinks(self.tls_id):
-            if entry:
-                entry_tuple = entry[0]
-                if entry_tuple:
-                    incomings.add(entry_tuple[0])
-                    outgoings.add(entry_tuple[1])
+            for outgoing in outgoings:
+                outgoings_sum += self.connection.lane.getLastStepVehicleNumber(outgoing)
 
-        incomings_sum = 0
-        outgoings_sum = 0
+            pressure = abs(incomings_sum - outgoings_sum)
 
-        for incoming in incomings:
-            incomings_sum += self.connection.lane.getLastStepVehicleNumber(incoming)
+            self.throughput += len(arrived_cars)
 
-        for outgoing in outgoings:
-            outgoings_sum += self.connection.lane.getLastStepVehicleNumber(outgoing)
+            self.travel_time += accumulated_travel_time
 
-        pressure = abs(incomings_sum - outgoings_sum)
+            pressures[tls_id] = pressure
+            rewards[tls_id] = -pressure
 
-        self.throughput += len(arrived_cars)
-
-        self.travel_time += accumulated_travel_time
-        reward = -pressure
-        return reward, pressure
+        return rewards, pressures
 
     def _reset(self):
         self.travel_time = 0

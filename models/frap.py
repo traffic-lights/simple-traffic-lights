@@ -6,6 +6,7 @@ from models.neural_net import SerializableModel
 
 NUM_PHASES = 8
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+#device = torch.device('cpu')
 
 # from what traffic movements phases are made of
 phases_movements = {

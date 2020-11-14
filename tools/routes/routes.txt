@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+	<route edges="gneE27 gneE21 -gneE28" id="route_0"/>
+	<route edges="gneE27 gneE21 -gneE29" id="route_1"/>
+	<route edges="gneE27 gneE21 gneE22 -gneE30" id="route_2"/>
+	<route edges="gneE27 gneE21 gneE22 -gneE31" id="route_3"/>
+	<route edges="gneE27 -gneE24 -gneE32" id="route_4"/>
+	<route edges="gneE27 -gneE24 -gneE33" id="route_5"/>
+	<route edges="gneE27 gneE25" id="route_6"/>
+	<route edges="gneE28 -gneE21 -gneE27" id="route_7"/>
+	<route edges="gneE28 -gneE29" id="route_8"/>
+	<route edges="gneE28 gneE22 -gneE30" id="route_9"/>
+	<route edges="gneE28 gneE22 -gneE31" id="route_10"/>
+	<route edges="gneE28 -gneE21 -gneE24 -gneE32" id="route_11"/>
+	<route edges="gneE28 -gneE21 -gneE24 -gneE33" id="route_12"/>
+	<route edges="gneE28 -gneE21 gneE25" id="route_13"/>
+	<route edges="gneE29 -gneE21 -gneE27" id="route_14"/>
+	<route edges="gneE29 -gneE28" id="route_15"/>
+	<route edges="gneE29 gneE22 -gneE30" id="route_16"/>
+	<route edges="gneE29 gneE22 -gneE31" id="route_17"/>
+	<route edges="gneE29 -gneE21 -gneE24 -gneE32" id="route_18"/>
+	<route edges="gneE29 -gneE21 -gneE24 -gneE33" id="route_19"/>
+	<route edges="gneE29 -gneE21 gneE25" id="route_20"/>
+	<route edges="gneE30 -gneE22 -gneE21 -gneE27" id="route_21"/>
+	<route edges="gneE30 -gneE22 -gneE28" id="route_22"/>
+	<route edges="gneE30 -gneE22 -gneE29" id="route_23"/>
+	<route edges="gneE30 -gneE31" id="route_24"/>
+	<route edges="gneE30 gneE23 -gneE32" id="route_25"/>
+	<route edges="gneE30 gneE23 -gneE33" id="route_26"/>
+	<route edges="gneE30 -gneE22 -gneE21 gneE25" id="route_27"/>
+	<route edges="gneE31 -gneE22 -gneE21 -gneE27" id="route_28"/>
+	<route edges="gneE31 -gneE22 -gneE28" id="route_29"/>
+	<route edges="gneE31 -gneE22 -gneE29" id="route_30"/>
+	<route edges="gneE31 -gneE30" id="route_31"/>
+	<route edges="gneE31 gneE23 -gneE32" id="route_32"/>
+	<route edges="gneE31 gneE23 -gneE33" id="route_33"/>
+	<route edges="gneE31 -gneE22 -gneE21 gneE25" id="route_34"/>
+	<route edges="gneE32 gneE24 -gneE27" id="route_35"/>
+	<route edges="gneE32 -gneE23 -gneE22 -gneE28" id="route_36"/>
+	<route edges="gneE32 -gneE23 -gneE22 -gneE29" id="route_37"/>
+	<route edges="gneE32 -gneE23 -gneE30" id="route_38"/>
+	<route edges="gneE32 -gneE23 -gneE31" id="route_39"/>
+	<route edges="gneE32 -gneE33" id="route_40"/>
+	<route edges="gneE32 gneE24 gneE25" id="route_41"/>
+	<route edges="gneE33 gneE24 -gneE27" id="route_42"/>
+	<route edges="gneE33 -gneE23 -gneE22 -gneE28" id="route_43"/>
+	<route edges="gneE33 -gneE23 -gneE22 -gneE29" id="route_44"/>
+	<route edges="gneE33 -gneE23 -gneE30" id="route_45"/>
+	<route edges="gneE33 -gneE23 -gneE31" id="route_46"/>
+	<route edges="gneE33 -gneE32" id="route_47"/>
+	<route edges="gneE33 gneE24 gneE25" id="route_48"/>
+	<route edges="-gneE25 -gneE27" id="route_49"/>
+	<route edges="-gneE25 gneE21 -gneE28" id="route_50"/>
+	<route edges="-gneE25 gneE21 -gneE29" id="route_51"/>
+	<route edges="-gneE25 gneE21 gneE22 -gneE30" id="route_52"/>
+	<route edges="-gneE25 gneE21 gneE22 -gneE31" id="route_53"/>
+	<route edges="-gneE25 -gneE24 -gneE32" id="route_54"/>
+	<route edges="-gneE25 -gneE24 -gneE33" id="route_55"/>
+</routes>

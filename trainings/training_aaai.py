@@ -42,7 +42,8 @@ def get_new_training():
         target_net,
         optimizer,
         loss_fn,
-        memory
+        memory,
+        ['gneJ18']
     )
 
 
@@ -74,7 +75,8 @@ def get_frap_training():
         target_net,
         optimizer,
         loss_fn,
-        memory
+        memory,
+        ['gneJ18']
     )
 
 
@@ -89,5 +91,19 @@ def train_aaai():
     )
 
 
+def train_2v2():
+    env_config_path = Path(JSONS_FOLDER, 'configs', 'test_2v2.json')
+
+    training_state = get_frap_training()
+    training_state.junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
+
+    main_train(
+        training_state,
+        SumoEnv.from_config_file(env_config_path),
+        None,
+        Path('saved', 'aaai', 'frap'),
+    )
+
 if __name__ == '__main__':
-    train_aaai()
+    #train_aaai()
+    train_2v2()
