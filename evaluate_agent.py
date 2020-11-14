@@ -12,7 +12,7 @@ from traffic_controllers.vehicle_number_controller import VehicleNumberControlle
 from trainings.training_parameters import TrainingState
 
 def main():
-    evaluator = Evaluator.from_file("test_framework/configs/test_2v2.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/2v2_tests.json")
 
     cyclic_controller = TimedCyclicSwitchController(list(range(8)), [3] * 8)
 
@@ -38,10 +38,15 @@ def main():
     controller_map3['gneJ25'] = cyclic_controller
     controller_map3['gneJ26'] = cyclic_controller
 
-    all_metrics = evaluator.evaluate_all_dicts([controller_map1, controller_map2, controller_map3])
+    all_metrics = evaluator.evaluate_all_dicts([controller_map1, controller_map2])
 
-    for metrics in all_metrics:
-        print(metrics)
+    for i, set_metrics in enumerate(all_metrics):
+        print('SET %d' % i)
+        for test_name, metric_dict in set_metrics.items():
+            print(test_name.upper(), end=' ')
+            for metric_name, val in metric_dict.items():
+                print('%s=%d' % (metric_name, val), end=' ')
+            print()
 
 
 if __name__ == '__main__':

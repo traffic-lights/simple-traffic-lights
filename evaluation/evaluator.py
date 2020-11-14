@@ -53,11 +53,14 @@ class Evaluator:
         metrics = {}
 
         for env_name, env in self.environments.items():
+            print('evaluating %s' % env_name)
             with env.create_runner(render=True) as runner:
                 controllers_with_connection = {junction: controller.with_connection(runner.connection) for
                                                junction, controller in traffic_controllers_dict.items()}
 
                 metrics[env_name] = evaluate_controllers_dict(runner, controllers_with_connection, max_ep_len=300)
+
+                print('res: ', metrics[env_name])
 
         return metrics
 
@@ -67,11 +70,12 @@ class Evaluator:
             traffic_controllers_dicts = [traffic_controllers_dicts]
 
         all_metrics = []
-        for traffic_controllers_dict in traffic_controllers_dicts:
+        for i, traffic_controllers_dict in enumerate(traffic_controllers_dicts):
+            print('evaluating set %d' % i)
             all_metrics.append(self._evaluate_traffic_controllers_dict(traffic_controllers_dict))
 
         return all_metrics
-
+    '''
     def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step):
         controller_names = list(traffic_controllers_dict.keys())
         controllers = list(traffic_controllers_dict.values())
@@ -89,4 +93,4 @@ class Evaluator:
             tf_writer.add_scalars(tag_name, scalar, step)
 
         tf_writer.flush()
-
+    '''

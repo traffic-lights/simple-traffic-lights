@@ -44,7 +44,9 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         return states
 
-    def _continue_simulation(self, arrived_cars, accumulated_travel_time):
+    def _continue_simulation(self, arrived_cars):
+        accumulated_travel_time = 0
+
         self._generate_vehicles()
         time = self.connection.simulation.getTime()
 
@@ -58,6 +60,7 @@ class AaaiEnvRunner(SumoEnvRunner):
             del self.traveling_cars[car]
 
         self.connection.simulationStep()
+        return accumulated_travel_time
 
     def _take_action(self, actions):
         arrived_cars = set()
@@ -83,7 +86,7 @@ class AaaiEnvRunner(SumoEnvRunner):
                 dur = self.connection.trafficlight.getPhaseDuration(tls_id)
 
                 while self.connection.simulation.getTime() - start_time < dur - 0.1:
-                    self._continue_simulation(arrived_cars, accumulated_travel_time)
+                    accumulated_travel_time += self._continue_simulation(arrived_cars)
 
         # turn green
 
@@ -96,7 +99,7 @@ class AaaiEnvRunner(SumoEnvRunner):
         start_time = self.connection.simulation.getTime()
 
         while self.connection.simulation.getTime() - start_time < self.light_duration - 0.1:
-            self._continue_simulation(arrived_cars, accumulated_travel_time)
+            accumulated_travel_time += self._continue_simulation(arrived_cars)
 
         for tls_id in actions.keys():
 
