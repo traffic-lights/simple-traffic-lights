@@ -12,14 +12,20 @@ class AaaiEnvRunner(SumoEnvRunner):
     def __init__(self,
                  sumo_cmd,
                  vehicle_generator_config,
+                 junctions,
                  traffic_movements,
                  traffic_lights_phases,
                  light_duration,
                  max_steps=1500,
                  env_name=None):
         super().__init__(sumo_cmd, vehicle_generator_config, max_steps, env_name=env_name)
-        self.observation_space = spaces.Space(shape=(traffic_movements + 1,))
-        self.action_space = spaces.Discrete(traffic_lights_phases)
+
+        self.junctions = junctions
+        self.traffic_lights_phases = traffic_lights_phases
+
+        self.observation_space = spaces.Space(shape=(len(junctions)*(traffic_movements + 1),))
+        self.action_space = spaces.Discrete(traffic_lights_phases ** len(junctions))
+
         self.light_duration = light_duration
 
         self.previous_actions = {}
@@ -30,12 +36,37 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.restarted = True
 
+    def dict_states_to_array(self, states):
+        arr = []
+        for state in states.values():
+            arr.extend(state)
+        return arr
+
+    def arr_states_to_dict(self, states):
+        dct = {}
+        for i, junction in enumerate(self.junctions):
+            dct[junction] = states[13*i:13*(i+1)]
+        return dct
+
+    def dict_actions_to_val(self, actions):
+        val = 0
+        for action in actions.values():
+            val *= self.traffic_lights_phases
+            val += action
+        return val
+
+    def val_action_to_dict(self, val):
+        reversed_arr = []
+        while val:
+            reversed_arr.append(int(val % self.traffic_lights_phases))
+            val //= self.traffic_lights_phases
+
+        dct = dict(zip(self.junctions, reversed(reversed_arr)))
+        return dct
+
     def _snap_state(self):
         states = {
-            'gneJ25': [0]*13,
-            'gneJ26': [0]*13,
-            'gneJ27': [0]*13,
-            'gneJ28': [0]*13,
+            junction: [0]*13 for junction in self.junctions
         }
         for tls_id, action in self.previous_actions.items():
             pressures = [action]
@@ -51,7 +82,7 @@ class AaaiEnvRunner(SumoEnvRunner):
 
             states[tls_id] = pressures
 
-        return states
+        return np.asarray(self.dict_states_to_array(states), dtype='float32')
 
     def _simulate_step(self):
         arrived_cars = set()
@@ -96,7 +127,9 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         return arrived_cars, accumulated_travel_time
 
-    def _take_action(self, actions):
+    def _take_action(self, action):
+        actions = self.val_action_to_dict(action)
+
         arrived_cars = set()
 
         accumulated_travel_time = 0
@@ -104,8 +137,8 @@ class AaaiEnvRunner(SumoEnvRunner):
         rewards = {}
         pressures = {}
 
-        def yellow(act):  3 * act + 1
-        def red(act): 3 * act + 2
+        def yellow(act): return 3 * act + 1
+        def red(act): return 3 * act + 2
 
         # turn yellow and red light if different action
 
@@ -170,7 +203,7 @@ class AaaiEnvRunner(SumoEnvRunner):
             pressures[tls_id] = pressure
             rewards[tls_id] = -pressure
 
-        return done, rewards, {
+        return done, np.mean(list(rewards.values())), {
             'reward': rewards,
             'pressure': pressures,
             'travel_time': self.get_travel_time(),
@@ -199,6 +232,7 @@ class AaaiEnv(SumoEnv):
         return AaaiEnvRunner(
             sumo_cmd,
             self.vehicle_generator_config,
+            self.junctions,
             self.traffic_movements,
             self.traffic_lights_phases,
             self.light_duration,
@@ -208,10 +242,14 @@ class AaaiEnv(SumoEnv):
 
     def __init__(self, sumocfg_file_path, vehicle_generator_config,
                  max_steps=1500, env_name=None,
+                 junctions=None,
                  traffic_movements=TRAFFIC_MOVEMENTS,
                  traffic_lights_phases=TRAFFICLIGHTS_PHASES,
                  light_duration=LIGHT_DURATION):
         super().__init__(sumocfg_file_path, vehicle_generator_config, max_steps, env_name=env_name)
+        if junctions is None:
+            junctions = ['gneJ18']
+        self.junctions = junctions
         self.traffic_movements = traffic_movements
         self.traffic_lights_phases = traffic_lights_phases
         self.light_duration = light_duration

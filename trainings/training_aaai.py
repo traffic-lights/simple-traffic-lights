@@ -92,7 +92,7 @@ def train_aaai():
 
 
 def train_2v2():
-    env_config_path = Path(JSONS_FOLDER, 'configs', 'all_equal.json')
+    env_config_path = Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json')
 
     training_state = get_frap_training()
     training_state.junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
