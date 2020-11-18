@@ -23,7 +23,7 @@ class AaaiEnvRunner(SumoEnvRunner):
         self.junctions = junctions
         self.traffic_lights_phases = traffic_lights_phases
 
-        self.observation_space = spaces.Space(shape=(len(junctions)*(traffic_movements + 1),))
+        self.observation_space = spaces.Space(shape=(len(junctions), traffic_movements + 1))
         self.action_space = spaces.MultiDiscrete([traffic_lights_phases] * len(junctions))
 
         self.light_duration = light_duration
@@ -39,13 +39,13 @@ class AaaiEnvRunner(SumoEnvRunner):
     def dict_states_to_array(self, states):
         arr = []
         for state in states.values():
-            arr.extend(state)
+            arr.append(state)
         return arr
 
     def arr_states_to_dict(self, states):
         dct = {}
         for i, junction in enumerate(self.junctions):
-            dct[junction] = states[13*i:13*(i+1)]
+            dct[junction] = states[13 * i:13 * (i + 1)]
         return dct
 
     def dict_actions_to_val(self, actions):
@@ -66,7 +66,7 @@ class AaaiEnvRunner(SumoEnvRunner):
 
     def _snap_state(self):
         states = {
-            junction: [0]*13 for junction in self.junctions
+            junction: [0] * 13 for junction in self.junctions
         }
         for tls_id, action in self.previous_actions.items():
             pressures = [action]
@@ -81,7 +81,6 @@ class AaaiEnvRunner(SumoEnvRunner):
                         pressures.append(my_pressure)
 
             states[tls_id] = pressures
-
         return np.asarray(self.dict_states_to_array(states), dtype='float32')
 
     def _simulate_step(self):
@@ -137,8 +136,11 @@ class AaaiEnvRunner(SumoEnvRunner):
         rewards = {}
         pressures = {}
 
-        def yellow(act): return 3 * act + 1
-        def red(act): return 3 * act + 2
+        def yellow(act):
+            return 3 * act + 1
+
+        def red(act):
+            return 3 * act + 2
 
         # turn yellow and red light if different action
 

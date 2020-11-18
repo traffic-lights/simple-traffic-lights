@@ -16,7 +16,7 @@ from rlpyt.utils.logging.context import logger_context
 from settings import JSONS_FOLDER, PROJECT_ROOT
 
 
-def build_and_train(game="aaai_env", run_ID=0):
+def build_and_train(game="aaai_multi", run_ID=0):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
@@ -48,6 +48,7 @@ def build_and_train(game="aaai_env", run_ID=0):
         'more_south': Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_south.json'),
         'more_east': Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_east.json')
     })
+
     sampler = AsyncGpuSampler(
         EnvCls=Rlpyt_env,
         TrajInfoCls=AaaiTrajInfo,
@@ -66,21 +67,22 @@ def build_and_train(game="aaai_env", run_ID=0):
         eval_n_envs=2,
     )
     algo = DQN(
-        replay_ratio=128,
+        replay_ratio=1024,
         double_dqn=True,
         prioritized_replay=True,
         min_steps_learn=5000,
-        learning_rate=0.00008,
-        target_update_tau=0.0006,
-        target_update_interval=5,
+        learning_rate=0.0001,
+        target_update_tau=1.0,
+        target_update_interval=300,
         eps_steps=3e4,
-        batch_size=128,
+        batch_size=1024,
         pri_alpha=0.6,
         pri_beta_init=0.4,
         pri_beta_final=1.,
-        pri_beta_steps=int(5e5)
+        pri_beta_steps=int(5e4),
+        replay_size=int(1e6)
     )
-    agent = DqnAgent(ModelCls=Frap, model_kwargs={'num_junctions': 4})
+    agent = DqnAgent(ModelCls=Frap)
     runner = AsyncRlEval(
         algo=algo,
         agent=agent,
@@ -91,8 +93,8 @@ def build_and_train(game="aaai_env", run_ID=0):
     )
 
     config = dict(game=game)
-    name = "async_dqn_" + game
-    log_dir = Path(PROJECT_ROOT, "saved", "rlpyt", "async_dqn")
+    name = "frap_" + game
+    log_dir = Path(PROJECT_ROOT, "saved", "rlpyt", "multi", "frap")
 
     save_path = Path(log_dir, 'run_{}'.format(run_ID))
     for f in save_path.glob('**/*'):
