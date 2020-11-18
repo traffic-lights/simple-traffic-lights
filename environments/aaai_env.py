@@ -24,7 +24,6 @@ class AaaiEnvRunner(SumoEnvRunner):
         self.traffic_lights_phases = traffic_lights_phases
 
         self.observation_space = spaces.Space(shape=(len(junctions)*(traffic_movements + 1),))
-        #self.action_space = spaces.Discrete(traffic_lights_phases ** len(junctions))
         self.action_space = spaces.MultiDiscrete([traffic_lights_phases] * len(junctions))
 
         self.light_duration = light_duration
@@ -129,7 +128,6 @@ class AaaiEnvRunner(SumoEnvRunner):
         return arrived_cars, accumulated_travel_time
 
     def _take_action(self, action):
-        #actions = self.val_action_to_dict(action)
         actions = dict(zip(self.junctions, action))
 
         arrived_cars = set()
@@ -149,7 +147,6 @@ class AaaiEnvRunner(SumoEnvRunner):
             phase_changes = {}
 
             for tls_id, act in actions.items():
-                #print("TOMSIA PREV", self.previous_actions)
                 if act != self.previous_actions[tls_id]:
                     phase_changes[tls_id] = self.previous_actions[tls_id]
 
@@ -163,7 +160,6 @@ class AaaiEnvRunner(SumoEnvRunner):
                 arrived_cars |= my_cars
                 accumulated_travel_time += my_time
 
-        #print("TOMSIA SET PREV:", action, actions)
         self.previous_actions = actions
 
         for tls_id, act in actions.items():
