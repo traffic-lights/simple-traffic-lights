@@ -87,7 +87,7 @@ def train_aaai():
         get_frap_training(),
         SumoEnv.from_config_file(env_config_path),
         evaluator,
-        Path('saved', 'aaai', 'frap'),
+        Path('saved', 'aaai-random', 'frap'),
     )
 
 

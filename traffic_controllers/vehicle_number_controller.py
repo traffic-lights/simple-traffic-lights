@@ -102,7 +102,7 @@ class VehicleNumberPressureControllerRunner:
 
         self.in_out_map = {}
         for entry in self.connection.trafficlight.getControlledLinks(tls_id):
-            inc, out = entry[0]
+            inc, out, _ = entry[0]
             if inc in incomings:
                 self.in_out_map[inc] = out
 
@@ -122,7 +122,7 @@ class VehicleNumberPressureControllerRunner:
 
 @dataclass
 class VehicleNumberPressureController(TrafficController):
-    tls_id: int
+    tls_id: str
     phase_to_incoming_lanes_map: dict
 
     def with_connection(self, connection):

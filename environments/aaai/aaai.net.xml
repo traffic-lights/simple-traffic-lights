@@ -1,24 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on pon, 17 sie 2020, 19:41:34 by Eclipse SUMO netedit Version 1.6.0
+<!-- generated on Fri Nov 13 21:46:50 2020 by Eclipse SUMO netedit Version 1.7.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
+    <input>
+        <sumo-net-file value="/home/marwin34/dev/simple-traffic-lights/environments/aaai/aaai.net.xml"/>
+    </input>
+
     <output>
-        <output-file value="/home/marwin34/dev/simple-traffic-lights/environment/aaai.net.xml"/>
+        <output-file value="/home/marwin34/dev/simple-traffic-lights/environments/aaai/aaai.net.xml"/>
     </output>
 
     <processing>
+        <geometry.min-radius.fix.railways value="false"/>
+        <geometry.max-grade.fix value="false"/>
         <offset.disable-normalization value="true"/>
+        <lefthand value="false"/>
     </processing>
 
     <junctions>
         <no-turnarounds value="true"/>
+        <junctions.corner-detail value="5"/>
+        <junctions.limit-turn-speed value="5.5"/>
+        <rectangular-lane-cut value="false"/>
     </junctions>
 
-    <netedit>
-        <route-files value="/home/marwin34/dev/simple-traffic-lights/environment/aaai.rou.xml"/>
-        <TLSPrograms-output value="/home/marwin34/dev/simple-traffic-lights/environment/aaai.tls.xml"/>
-    </netedit>
+    <pedestrian>
+        <walkingareas value="false"/>
+    </pedestrian>
 
     <report>
         <aggregate-warnings value="5"/>
@@ -29,7 +38,7 @@
 
 <net version="1.6" junctionCornerDetail="5" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
-    <location netOffset="0.00,0.00" convBoundary="-100.00,0.00,100.00,200.00" origBoundary="10000000000.00,10000000000.00,-10000000000.00,-10000000000.00" projParameter="!"/>
+    <location netOffset="0.00,0.00" convBoundary="-100.00,0.00,100.00,200.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
 
     <edge id=":gneJ18_0" function="internal">
         <lane id=":gneJ18_0_0" index="0" speed="6.51" length="9.03" shape="-8.00,113.60 -8.35,111.15 -9.40,109.40 -11.15,108.35 -13.60,108.00"/>
@@ -136,20 +145,28 @@
     <tlLogic id="gneJ18" type="static" programID="0" offset="0">
         <phase duration="40" state="GrrGGrGrrGGr"/>
         <phase duration="3"  state="GrrGyrGrrGyr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GrrGGGGrrGrr"/>
         <phase duration="3"  state="GrrGyyGrrGrr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GrrGrrGrrGGG"/>
         <phase duration="3"  state="GrrGrrGrrGyy"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GrrGrGGrrGrG"/>
         <phase duration="3"  state="GrrGryGrrGry"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GGrGrrGGrGrr"/>
         <phase duration="3"  state="GyrGrrGyrGrr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GrrGrrGGGGrr"/>
         <phase duration="3"  state="GrrGrrGyyGrr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GGGGrrGrrGrr"/>
         <phase duration="3"  state="GyyGrrGrrGrr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
         <phase duration="40" state="GrGGrrGrGGrr"/>
         <phase duration="3"  state="GryGrrGryGrr"/>
+        <phase duration="2"  state="GrrGrrGrrGrr"/>
     </tlLogic>
 
     <junction id="gneJ18" type="traffic_light" x="0.00" y="100.00" incLanes="gneE15_0 gneE15_1 gneE15_2 gneE17_0 gneE17_1 gneE17_2 gneE19_0 gneE19_1 gneE19_2 gneE21_0 gneE21_1 gneE21_2" intLanes=":gneJ18_0_0 :gneJ18_1_0 :gneJ18_2_0 :gneJ18_3_0 :gneJ18_4_0 :gneJ18_5_0 :gneJ18_6_0 :gneJ18_7_0 :gneJ18_8_0 :gneJ18_9_0 :gneJ18_10_0 :gneJ18_11_0" shape="-9.60,113.60 9.60,113.60 10.04,111.38 10.60,110.60 11.38,110.04 12.38,109.71 13.60,109.60 13.60,90.40 11.38,89.96 10.60,89.40 10.04,88.62 9.71,87.62 9.60,86.40 -9.60,86.40 -10.04,88.62 -10.60,89.40 -11.38,89.96 -12.38,90.29 -13.60,90.40 -13.60,109.60 -11.38,110.04 -10.60,110.60 -10.04,111.38 -9.71,112.38">

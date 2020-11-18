@@ -6,14 +6,14 @@ from environments.sumo_env import SumoEnv
 from settings import PROJECT_ROOT
 import numpy as np
 
-
 def evaluate_controllers_dict(runner, controllers, max_ep_len):
     states = runner.reset()
     ep_len = 0
     done = False
     all_rewards = []
 
-    while not done and ep_len < max_ep_len:
+    while not done:
+        action = controller(state)
 
         actions = {}
         for tls_id, controller in controllers.items():

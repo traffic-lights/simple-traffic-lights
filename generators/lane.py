@@ -35,7 +35,7 @@ class Lane:
             vehID=car_id,
             routeID=np.random.choice(self.routes_ids),
             departLane=self.index,
-            departSpeed="max",
+            departSpeed='2',
         )
 
     def reset_spawning_data(self):

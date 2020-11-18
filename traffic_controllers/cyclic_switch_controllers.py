@@ -1,3 +1,4 @@
+import random
 from abc import ABC
 from dataclasses import dataclass
 
@@ -58,3 +59,11 @@ class CallCounterCyclicSwitchController(CyclicSwitchControllerI, TrafficControll
 
     def _reset_period(self):
         self.cnt = 0
+
+
+class RandomSwitchController(TrafficController):
+    def __init__(self, actions):
+        self.actions = actions
+
+    def __call__(self, state):
+        return random.choice(self.actions)

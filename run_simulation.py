@@ -11,6 +11,7 @@ import torch
 from environments.aaai_env import AaaiEnv
 from environments.simple_env import SimpleEnv
 from environments.sumo_env import SumoEnv
+from models.frap import Frap
 from settings import PROJECT_ROOT, JSONS_FOLDER
 from trainings.training_parameters import TrainingState
 
@@ -24,8 +25,12 @@ class SumoWorker(QRunnable):
         super(SumoWorker, self).__init__()
         self.period_dict = period_dict
         self.active_lanes = active_lanes
-        self.state = TrainingState.from_path(states_path)
-        self.model = self.state.model
+        # self.state = TrainingState.from_path(states_path)
+        # self.model = self.state.model
+        with open(states_path, 'rb') as f:
+            w = torch.load(f, map_location='cpu')['agent_state_dict']['model']
+        self.model = Frap()
+        self.model.load_state_dict(w)
 
         self.env = SumoEnv.from_config_file(Path(JSONS_FOLDER, 'configs', 'aaai_qt.json')).create_runner(True)
 
