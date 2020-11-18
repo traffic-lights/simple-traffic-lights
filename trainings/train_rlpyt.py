@@ -32,21 +32,21 @@ def build_and_train(game="aaai_env", run_ID=0):
     )
 
     train_conf = PytConfig([
-        Path(JSONS_FOLDER, 'configs', 'aaai_random.json'),
-        Path(JSONS_FOLDER, 'configs', 'aaai_random_more_horizontally.json'),
-        Path(JSONS_FOLDER, 'configs', 'aaai_random_more_vertically.json'),
-        Path(JSONS_FOLDER, 'configs', 'example_test_more_from_west.json'),
-        Path(JSONS_FOLDER, 'configs', 'example_test_more_from_east.json'),
-        Path(JSONS_FOLDER, 'configs', 'example_test_more_from_north.json'),
-        Path(JSONS_FOLDER, 'configs', 'example_test_more_from_south.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_horizontally.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_vertically.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_west.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_east.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_north.json'),
+        Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_south.json'),
     ])
 
     eval_conf = PytConfig({
-        'all_equal': Path(JSONS_FOLDER, 'configs', 'example_test_all_equal.json'),
-        'more_horizontally': Path(JSONS_FOLDER, 'configs', 'example_test_more_horizontally.json'),
-        'more_vertically': Path(JSONS_FOLDER, 'configs', 'example_test_more_vertically.json'),
-        'more_south': Path(JSONS_FOLDER, 'configs', 'example_test_more_from_south.json'),
-        'more_east': Path(JSONS_FOLDER, 'configs', 'example_test_more_from_east.json')
+        'all_equal': Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json'),
+        'more_horizontally': Path(JSONS_FOLDER, 'configs', '2v2', 'more_horizontally.json'),
+        'more_vertically': Path(JSONS_FOLDER, 'configs', '2v2', 'more_vertically.json'),
+        'more_south': Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_south.json'),
+        'more_east': Path(JSONS_FOLDER, 'configs', '2v2', 'more_from_east.json')
     })
     sampler = AsyncGpuSampler(
         EnvCls=Rlpyt_env,
@@ -80,7 +80,7 @@ def build_and_train(game="aaai_env", run_ID=0):
         pri_beta_final=1.,
         pri_beta_steps=int(5e5)
     )
-    agent = DqnAgent(ModelCls=Frap)
+    agent = DqnAgent(ModelCls=Frap, model_kwargs={'num_junctions': 4})
     runner = AsyncRlEval(
         algo=algo,
         agent=agent,

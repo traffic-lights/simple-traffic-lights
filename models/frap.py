@@ -34,9 +34,13 @@ class Frap(SerializableModel):
                  demand_hidden=16,
                  num_conv_layers=2,
                  conv_channels_size=16,
-                 output_mean=True
+                 output_mean=True,
+                 num_junctions=1,
+                 traffic_lights_movements=12
                  ):
         super().__init__()
+        self.num_junctions = num_junctions
+        self.traffic_lights_movements = traffic_lights_movements
         self.output_mean = output_mean
         self.conv_channels_size = conv_channels_size
         self.num_conv_layers = num_conv_layers
@@ -93,7 +97,9 @@ class Frap(SerializableModel):
 
     def forward(self, pressures, prev_action=None, prev_reward=None):
         lead_dim, T, B, pressures_shape = infer_leading_dims(pressures, 1)
-        pressures = pressures.view(T * B, *pressures_shape)
+        #print("TOMSIA press before: ", pressures.shape, pressures)
+        pressures = pressures.view(T * B * self.num_junctions, -1)
+        #print("TOMSIA press after: ", pressures.shape, pressures)
         curr_phases = pressures[:, 0].unsqueeze(-1)
         phases_pressures = pressures[:, 1:]
         saved_demands = dict()
@@ -129,5 +135,9 @@ class Frap(SerializableModel):
             phase_competition = phase_competition.mean(dim=2)
         else:
             phase_competition = phase_competition.sum(dim=2)
+
+        #print('TOMSIA PHASE COMP before:', phase_competition.shape, phase_competition)
+        phase_competition = phase_competition.reshape(T * B, self.num_junctions, -1)
+        #print('TOMSIA PHASE COMP after:', phase_competition.shape, phase_competition)
 
         return restore_leading_dims(phase_competition, lead_dim, T, B)

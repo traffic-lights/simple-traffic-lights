@@ -24,11 +24,12 @@ class AaaiEnvRunner(SumoEnvRunner):
         self.traffic_lights_phases = traffic_lights_phases
 
         self.observation_space = spaces.Space(shape=(len(junctions)*(traffic_movements + 1),))
-        self.action_space = spaces.Discrete(traffic_lights_phases ** len(junctions))
+        #self.action_space = spaces.Discrete(traffic_lights_phases ** len(junctions))
+        self.action_space = spaces.MultiDiscrete([traffic_lights_phases] * len(junctions))
 
         self.light_duration = light_duration
 
-        self.previous_actions = {}
+        self.previous_actions = {junction: 0 for junction in junctions}
         self.traveling_cars = {}
 
         self.travel_time = 0
@@ -57,7 +58,7 @@ class AaaiEnvRunner(SumoEnvRunner):
 
     def val_action_to_dict(self, val):
         reversed_arr = []
-        while val:
+        for _ in range(len(self.junctions)):
             reversed_arr.append(int(val % self.traffic_lights_phases))
             val //= self.traffic_lights_phases
 
@@ -128,7 +129,8 @@ class AaaiEnvRunner(SumoEnvRunner):
         return arrived_cars, accumulated_travel_time
 
     def _take_action(self, action):
-        actions = self.val_action_to_dict(action)
+        #actions = self.val_action_to_dict(action)
+        actions = dict(zip(self.junctions, action))
 
         arrived_cars = set()
 
@@ -146,8 +148,9 @@ class AaaiEnvRunner(SumoEnvRunner):
 
             phase_changes = {}
 
-            for tls_id, action in actions.items():
-                if action != self.previous_actions[tls_id]:
+            for tls_id, act in actions.items():
+                #print("TOMSIA PREV", self.previous_actions)
+                if act != self.previous_actions[tls_id]:
                     phase_changes[tls_id] = self.previous_actions[tls_id]
 
             if phase_changes:
@@ -160,10 +163,11 @@ class AaaiEnvRunner(SumoEnvRunner):
                 arrived_cars |= my_cars
                 accumulated_travel_time += my_time
 
+        #print("TOMSIA SET PREV:", action, actions)
         self.previous_actions = actions
 
-        for tls_id, action in actions.items():
-            self.connection.trafficlight.setPhase(tls_id, 3 * action)
+        for tls_id, act in actions.items():
+            self.connection.trafficlight.setPhase(tls_id, 3 * act)
             self.connection.trafficlight.setPhaseDuration(tls_id, self.light_duration)
 
         start_time = self.connection.simulation.getTime()
@@ -213,7 +217,7 @@ class AaaiEnvRunner(SumoEnvRunner):
     def _reset(self):
         self.travel_time = 0
         self.throughput = 0
-        self.previous_actions = {}
+        self.previous_actions = {junction: 0 for junction in self.junctions}
         self.traveling_cars = {}
         self.restarted = True
 

@@ -2,6 +2,7 @@
   "environment": {
     "type": "aaai",
     "additional_params": {
+      "junctions": ["gneJ25", "gneJ26", "gneJ27", "gneJ28"],
       "traffic_movements": 36,
       "traffic_lights_phases": 8,
       "light_duration": 1
