@@ -6,6 +6,7 @@ from models.neural_net import SerializableModel
 
 from rlpyt.utils.tensor import infer_leading_dims, restore_leading_dims
 
+
 class Frap(SerializableModel):
 
     def _get_init_params(self):
@@ -36,10 +37,8 @@ class Frap(SerializableModel):
                  num_conv_layers=2,
                  conv_channels_size=16,
                  output_mean=True,
-                 num_junctions=4,
                  ):
         super().__init__()
-        self.num_junctions = num_junctions
         self.output_mean = output_mean
         self.conv_channels_size = conv_channels_size
         self.num_conv_layers = num_conv_layers
@@ -95,8 +94,10 @@ class Frap(SerializableModel):
         return F.relu(self.phase_d(torch.cat([h_v, h_s], dim=1)))
 
     def forward(self, pressures, prev_action=None, prev_reward=None):
+        # pressures are in shape [XX, num_junctions, pressures]
         lead_dim, T, B, pressures_shape = infer_leading_dims(pressures, 2)
-        pressures = pressures.view(T * B * self.num_junctions, -1)
+        num_junctions, action_space = pressures_shape
+        pressures = pressures.view(T * B * num_junctions, -1)
         curr_phases = pressures[:, 0].unsqueeze(-1)
         phases_pressures = pressures[:, 1:]
         saved_demands = dict()
@@ -132,6 +133,6 @@ class Frap(SerializableModel):
             phase_competition = phase_competition.mean(dim=2)
         else:
             phase_competition = phase_competition.sum(dim=2)
-        phase_competition = phase_competition.reshape(T * B, self.num_junctions, -1)
+        phase_competition = phase_competition.reshape(T * B, num_junctions, -1)
 
         return restore_leading_dims(phase_competition, lead_dim, T, B)

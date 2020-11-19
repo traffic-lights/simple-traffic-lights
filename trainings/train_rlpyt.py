@@ -89,7 +89,7 @@ def build_and_train(game="aaai_multi", run_ID=0):
         sampler=sampler,
         log_interval_steps=1000,
         affinity=affinity,
-        n_steps=3e4
+        n_steps=4e4
     )
 
     config = dict(game=game)

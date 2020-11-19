@@ -36,7 +36,8 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.restarted = True
 
-    def dict_states_to_array(self, states):
+    @staticmethod
+    def dict_states_to_array(states):
         arr = []
         for state in states.values():
             arr.append(state)
@@ -198,15 +199,14 @@ class AaaiEnvRunner(SumoEnvRunner):
 
             pressure = abs(incomings_sum - outgoings_sum)
 
-            self.throughput += len(arrived_cars)
-
-            self.travel_time += accumulated_travel_time
-
             pressures[tls_id] = pressure
             rewards[tls_id] = -pressure
 
+        self.throughput += len(arrived_cars)
+        self.travel_time += accumulated_travel_time
+
         return done, np.mean(list(rewards.values())), {
-            'reward': rewards,
+            'reward': self.dict_states_to_array(rewards),
             'pressure': pressures,
             'travel_time': self.get_travel_time(),
             'throughput': self.get_throughput()
