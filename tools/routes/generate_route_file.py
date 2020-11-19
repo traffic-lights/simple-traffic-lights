@@ -1,12 +1,15 @@
 from collections import namedtuple
 
+MAX_DISTANCE = 1333333333337
+
 Edge = namedtuple('Edge', 'u v name')
 
 class Node:
     def __init__(self, id, is_dead_end):
         self.id = id
         self.is_dead_end = is_dead_end
-        self.parent_edge = None
+        self.distance = MAX_DISTANCE
+        self.parent_edges = []
         self.edges = []
 
     def add_edge(self, v, name):
@@ -17,13 +20,35 @@ def _reconstruct_and_get_routes(start, dead_ends):
     routes = []
     for dead_end in dead_ends:
         if dead_end != start:
-            current = dead_end
-            route = ''
-            while current != start:
-                route = current.parent_edge.name + ' ' + route
-                current = current.parent_edge.u
 
-            routes.append(route[:-1])
+            edges = []
+            current = dead_end
+            edges.append([current.parent_edges[0]])
+            run = 1
+
+            while run:
+                new_edges = []
+                for edge_list in edges:
+                    last = edge_list[-1]
+
+                    if last.u == start:
+                        run = 0
+                        break
+
+                    for parent_edge in last.u.parent_edges:
+                        tmp = edge_list.copy()
+                        tmp.append(parent_edge)
+                        new_edges.append(tmp)
+
+                if run:
+                    edges = new_edges
+
+            for edge_list in edges:
+                route = ''
+                for edge in edge_list:
+                    route = edge.name + ' ' + route
+
+                routes.append(route[:-1])
 
     return routes
 
@@ -35,16 +60,18 @@ def generate_routes(graph, filename):
     for dead_end in dead_ends:
 
         for u in graph:
-            u.parent_edge = None
+            u.parent_edges = []
+            u.distance = MAX_DISTANCE
 
-        dead_end.parent_edge = 1
+        dead_end.distance = 0
         stack = [dead_end]
 
         for u in stack:
             for edge in u.edges:
                 v = edge.v
-                if not v.parent_edge:
-                    v.parent_edge = edge
+                if v.distance >= u.distance + 1:
+                    v.parent_edges.append(edge)
+                    v.distance = u.distance + 1
                     stack.append(v)
 
         routes.extend(_reconstruct_and_get_routes(dead_end, dead_ends))
@@ -57,3 +84,4 @@ def generate_routes(graph, filename):
             file.write('\t<route edges="%s" id="route_%d"/>\n' % (route, i))
 
         file.write('</routes>')
+
