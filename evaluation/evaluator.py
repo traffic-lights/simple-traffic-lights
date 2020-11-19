@@ -13,17 +13,13 @@ def evaluate_controllers_dict(runner, controllers, max_ep_len):
     all_rewards = []
 
     while not done:
-        action = controller(state)
-
-        actions = {}
-        for tls_id, controller in controllers.items():
-            state = states.get(tls_id)
-            if not state:
-                state = [0]*13
-            actions[tls_id] = controller(state)
+        actions = []
+        for i, controller in enumerate(controllers.values()):
+            state = states[i]
+            actions.append(controller(state))
 
         states, rewards, done, info = runner.step(actions)
-        all_rewards.extend(list(rewards.values()))
+        all_rewards.extend(info['reward'])
 
         ep_len += 1
 

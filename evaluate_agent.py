@@ -1,26 +1,28 @@
 from pathlib import Path
 
 from evaluation.evaluator import Evaluator
+from models.frap import Frap
+from settings import PROJECT_ROOT
 from tools.phases.two_v_two import get_phase_map
-from traffic_controllers.cyclic_switch_controllers import TimedCyclicSwitchController
+from traffic_controllers.cyclic_switch_controllers import TimedCyclicSwitchController, RandomSwitchController
 
 import torch
 
 from traffic_controllers.model_controller import ModelController
-from traffic_controllers.vehicle_number_controller import VehicleNumberController
+from traffic_controllers.vehicle_number_controller import VehicleNumberController, VehicleNumberPressureController
 
 from trainings.training_parameters import TrainingState
 
 def main():
-    evaluator = Evaluator.from_file("jsons/evaluators/2v2_tests.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/2v2_all_equal.json")
 
-    cyclic_controller = TimedCyclicSwitchController(list(range(8)), [3] * 8)
+    model = Frap()
+    # model_path = str(Path(PROJECT_ROOT, 'model', 'params.pkl'))
+    # model_w = torch.load(model_path, map_location='cpu')
+    # model.load_state_dict(model_w['agent_state_dict']['model'])
+    # model = model.eval()
 
-    training_state = TrainingState.from_path(
-        Path('trainings', 'saved', 'aaai', 'frap', 'frap_2020-11-12.11-56-42-474684', 'states',
-             'ep_6_frap_2020-11-12.11-56-42-474684.tar'))
-
-    model_controller = ModelController(training_state.model)
+    model_controller = ModelController(model)
 
     controller_map1 = {
         'gneJ25': model_controller,
@@ -29,16 +31,15 @@ def main():
         'gneJ28': model_controller,
     }
 
+
     tls_to_phase_map = get_phase_map()
 
     controller_map2 = {tls: VehicleNumberController(phase_map) for tls, phase_map in tls_to_phase_map.items()}
+    controller_map3 = {tls: VehicleNumberPressureController(tls, phase_map) for tls, phase_map in
+                       tls_to_phase_map.items()}
+    #controller_map4 = {tls: RandomSwitchController(range(8)) for tls, phase_map in tls_to_phase_map.items()}
 
-    controller_map3 = controller_map2.copy()
-
-    controller_map3['gneJ25'] = cyclic_controller
-    controller_map3['gneJ26'] = cyclic_controller
-
-    all_metrics = evaluator.evaluate_all_dicts([controller_map1, controller_map2])
+    all_metrics = evaluator.evaluate_all_dicts([controller_map2])
 
     for i, set_metrics in enumerate(all_metrics):
         print('SET %d' % i)
