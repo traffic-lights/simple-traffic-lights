@@ -69,7 +69,7 @@ def generate_routes(graph, filename):
         for u in stack:
             for edge in u.edges:
                 v = edge.v
-                if v.distance >= u.distance + 1:
+                if v.distance >= u.distance + 1 and len(v.parent_edges) < 3:
                     v.parent_edges.append(edge)
                     v.distance = u.distance + 1
                     stack.append(v)

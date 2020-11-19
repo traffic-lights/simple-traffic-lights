@@ -1,0 +1,11 @@
+<configuration>
+    <gui_only>
+        <start value="true"/>
+        <quit-on-end value="true"/>
+    </gui_only>
+
+    <input>
+        <net-file value="4v4.net.xml" />
+        <route-files value="4v4.rou.xml" />
+    </input>
+</configuration>
