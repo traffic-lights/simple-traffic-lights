@@ -13,42 +13,42 @@
     "type": "const",
     "lanes": [
       {
-        "lane": "gneE27_0",
+        "lane": "gneE27_1",
         "active": true,
         "period": 36
       },
       {
-        "lane": "gneE28_0",
+        "lane": "gneE28_1",
         "active": true,
         "period": 36
       },
       {
-        "lane": "gneE29_0",
+        "lane": "gneE29_1",
         "active": true,
         "period": 36
       },
       {
-        "lane": "gneE30_0",
+        "lane": "gneE30_1",
         "active": true,
         "period": 36
       },
       {
-        "lane": "gneE31_0",
+        "lane": "gneE31_1",
         "active": true,
         "period": 6
       },
       {
-        "lane": "gneE32_0",
+        "lane": "gneE32_1",
         "active": true,
         "period": 6
       },
       {
-        "lane": "gneE33_0",
+        "lane": "gneE33_1",
         "active": true,
         "period": 36
       },
       {
-        "lane": "-gneE25_0",
+        "lane": "-gneE25_1",
         "active": true,
         "period": 36
       }
