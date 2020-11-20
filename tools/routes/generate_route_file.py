@@ -69,10 +69,14 @@ def generate_routes(graph, filename):
         for u in stack:
             for edge in u.edges:
                 v = edge.v
-                if v.distance >= u.distance + 1 and len(v.parent_edges) < 3:
+                if v.distance >= u.distance + 1:
+                    push_flag = len(v.parent_edges) == 0
+
                     v.parent_edges.append(edge)
                     v.distance = u.distance + 1
-                    stack.append(v)
+
+                    if push_flag:
+                        stack.append(v)
 
         routes.extend(_reconstruct_and_get_routes(dead_end, dead_ends))
 

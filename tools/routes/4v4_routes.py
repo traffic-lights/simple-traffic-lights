@@ -45,7 +45,6 @@ def graph_from_syst(syst, dim):
                     graph[i][j+1].add_edge(graph[i][j-1], neg_name)
 
     graph_list = []
-    print(graph[1][0])
     for i in range(dim):
         for j in range(dim):
             if graph[i][j]:
@@ -56,10 +55,5 @@ def graph_from_syst(syst, dim):
 
 if __name__ == '__main__':
     graph = graph_from_syst(syst, 11)
-
-    for node in graph:
-        print('is dead?: ', node.is_dead_end)
-        for edge in node.edges:
-            print('edge: ', edge.name)
 
     generate_routes(graph, 'routes.txt')
