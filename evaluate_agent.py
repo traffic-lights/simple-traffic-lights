@@ -13,6 +13,7 @@ from traffic_controllers.vehicle_number_controller import VehicleNumberControlle
 
 from trainings.training_parameters import TrainingState
 
+
 def main():
     evaluator = Evaluator.from_file("jsons/evaluators/2v2_all_equal.json")
 
@@ -31,15 +32,14 @@ def main():
         'gneJ28': model_controller,
     }
 
-
     tls_to_phase_map = get_phase_map()
 
-    controller_map2 = {tls: VehicleNumberController(phase_map) for tls, phase_map in tls_to_phase_map.items()}
-    controller_map3 = {tls: VehicleNumberPressureController(tls, phase_map) for tls, phase_map in
-                       tls_to_phase_map.items()}
-    #controller_map4 = {tls: RandomSwitchController(range(8)) for tls, phase_map in tls_to_phase_map.items()}
+    controller_map2 = [VehicleNumberController(phase_map) for tls, phase_map in tls_to_phase_map.values()]
+    controller_map3 = [VehicleNumberPressureController(tls, phase_map) for tls, phase_map in
+                       tls_to_phase_map.items()]
+    controller_map4 = [RandomSwitchController(range(8)) for _ in range(len(tls_to_phase_map))]
 
-    all_metrics = evaluator.evaluate_all_dicts([controller_map2])
+    all_metrics = evaluator.evaluate_traffic_controllers([controller_map2])
 
     for i, set_metrics in enumerate(all_metrics):
         print('SET %d' % i)
@@ -52,4 +52,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

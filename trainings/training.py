@@ -70,10 +70,6 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     training_state.model.to(device)
     training_state.target_model.to(device)
 
-    controllers = {}
-    for junction in training_state.junctions:
-        controllers[junction] = training_state.model
-
     rewards_queue = deque(maxlen=300)
 
     save_root = Path(save_root, params.model_name)
@@ -85,7 +81,7 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     print(tensorboard_save_root.resolve())
     writer = SummaryWriter(tensorboard_save_root)
-    with env.create_runner(render=True) as runner:
+    with env.create_runner(render=False) as runner:
 
         while params.current_episode < params.num_episodes:
 
@@ -93,25 +89,25 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
 
             ep_len = 0
             done = False
-            while not done and ep_len < params.max_ep_len:
+            while not done:  # and ep_len < params.max_ep_len:
                 ep_len += 1
                 params.total_steps += 1
-                actions = {}
+
                 if random.random() < params.current_eps or params.total_steps < params.pre_train_steps:
-                    for tls_id, _ in controllers.items():
-                        actions[tls_id] = runner.action_space.sample()
+                    actions = runner.action_space.sample()
                 else:
-                    for tls_id, controller in controllers.items():
-                        tensor_state = torch.tensor([states[tls_id]], dtype=torch.float32, device=device)
-                        actions[tls_id] = controller(tensor_state).max(1)[1].cpu().detach().numpy()[0].item()
+                    tensor_state = torch.tensor(states, dtype=torch.float32, device=device)
+                    actions = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy().tolist()
 
                 next_states, rewards, done, info = runner.step(actions)
-                rewards_queue.extend(list(rewards.values()))
+                rewards_queue.extend(info['reward'])
                 print(params.total_steps, np.mean(rewards_queue))
 
-                for tls_id, _ in controllers.items():
-                    training_state.replay_memory.add_experience(training_state, states[tls_id], actions[tls_id], rewards[tls_id], next_states[tls_id], done,
-                                                                device)
+                for s, r, a, n_s in zip(next_states, info['reward'], actions, next_states):
+                    training_state.replay_memory.add_experience(
+                        training_state, s, a, r, n_s, done, device
+                    )
+
                 states = next_states
 
                 if params.total_steps > params.pre_train_steps:
@@ -129,13 +125,13 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
-                    #if evaluator is not None and params.total_steps % params.test_freq == 0:
-                    #    evaluator.evaluate_to_tensorboard(
-                    #        {'model': ModelController(training_state.model.eval(), device)},
-                    #        writer,
-                    #        params.total_steps
-                    #    )
-                    #    training_state.model = training_state.model.train()
+                    if evaluator is not None and params.total_steps % params.test_freq == 0:
+                        evaluator.evaluate_to_tensorboard(
+                            {'model': ModelController(training_state.model.eval(), device)},
+                            writer,
+                            params.total_steps
+                        )
+                        training_state.model = training_state.model.train()
 
             writer.flush()
 

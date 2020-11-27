@@ -61,6 +61,7 @@ class SumTree:
     # get priority and sample
     def get(self, s):
         idx = self._retrieve(0, s)
+        idx = min(idx, self.n_entries + self.capacity - 2)
         dataIdx = idx - self.capacity + 1
 
         return (idx, self.tree[idx], self.data[dataIdx])

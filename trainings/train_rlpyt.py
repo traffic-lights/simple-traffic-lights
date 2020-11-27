@@ -54,16 +54,16 @@ def build_and_train(game="aaai_multi", run_ID=0):
         TrajInfoCls=AaaiTrajInfo,
         env_kwargs={
             'pyt_conf': train_conf,
-            'max_steps': 1500
+            'max_steps': 3000
         },
-        batch_T=1,
+        batch_T=8,
         batch_B=8,
         max_decorrelation_steps=100,
         eval_env_kwargs={
             'pyt_conf': eval_conf,
-            'max_steps': 1500
+            'max_steps': 3000
         },
-        eval_max_steps=10510,
+        eval_max_steps=24100,
         eval_n_envs=2,
     )
     algo = DQN(
@@ -73,14 +73,16 @@ def build_and_train(game="aaai_multi", run_ID=0):
         min_steps_learn=5000,
         learning_rate=0.0001,
         target_update_tau=1.0,
-        target_update_interval=300,
-        eps_steps=3e4,
-        batch_size=1024,
+        target_update_interval=1000,
+        eps_steps=5e4,
+        batch_size=512,
         pri_alpha=0.6,
         pri_beta_init=0.4,
         pri_beta_final=1.,
-        pri_beta_steps=int(5e4),
-        replay_size=int(1e6)
+        pri_beta_steps=int(7e4),
+        replay_size=int(1e6),
+        clip_grad_norm=1.0,
+        updates_per_sync=6
     )
     agent = DqnAgent(ModelCls=Frap)
     runner = AsyncRlEval(
@@ -89,7 +91,7 @@ def build_and_train(game="aaai_multi", run_ID=0):
         sampler=sampler,
         log_interval_steps=1000,
         affinity=affinity,
-        n_steps=5e4
+        n_steps=6e5
     )
 
     config = dict(game=game)

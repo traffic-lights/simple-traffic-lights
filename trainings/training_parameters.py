@@ -96,7 +96,7 @@ class TrainingState:
         optim = load_optim_from_dict(my_dict['optimizer'], model)
         mem = Memory.load_from_dict(my_dict['replay_memory'])
 
-        junctions = my_dict['junctions']
+        junctions = None#my_dict['junctions']
         #junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
 
         training_parameters = TrainingParameters(**my_dict['training_parameters'])

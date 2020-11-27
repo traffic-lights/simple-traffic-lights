@@ -16,8 +16,7 @@ class Frap(SerializableModel):
             'demand_hidden': self.demand_hidden,
             'num_conv_layers': self.num_conv_layers,
             'conv_channels_size': self.conv_channels_size,
-            'output_mean': self.output_mean,
-            'num_junctions': self.num_junctions
+            'output_mean': self.output_mean
         }
 
     def _create_conv(self, start_channels, num_layers, conv_channels_size):

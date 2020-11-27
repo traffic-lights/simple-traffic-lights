@@ -9,7 +9,7 @@ from evaluation.evaluator import Evaluator
 from memory.prioritized_memory import Memory
 from models.frap import Frap
 from models.neural_net import SimpleLinear
-from settings import JSONS_FOLDER
+from settings import JSONS_FOLDER, PROJECT_ROOT
 from trainings.training import get_model_name, main_train
 from trainings.training_parameters import TrainingParameters, TrainingState
 
@@ -51,11 +51,15 @@ def get_frap_training():
     model_name = get_model_name('frap')
     training_param = TrainingParameters(
         model_name,
-        pre_train_steps=1500,
-        tau=0.001,
-        lr=0.0001,
+        pre_train_steps=2000,
+        tau=1.0,
+        target_update_freq=100,
+        lr=0.0003,
         save_freq=1,
-        test_freq=50
+        test_freq=50,
+        memory_size=20000,
+        batch_size=512,
+        annealing_steps=8000
     )
 
     memory = Memory(training_param.memory_size)
@@ -95,15 +99,17 @@ def train_2v2():
     env_config_path = Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json')
 
     training_state = get_frap_training()
+    training_state.training_parameters.test_freq = 40
     training_state.junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
+    evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', '2v2_small_subset.json'))
 
     main_train(
         training_state,
-        SumoEnv.from_config_file(env_config_path),
-        None,
-        Path('saved', 'aaai', 'frap'),
+        SumoEnv.from_config_file(env_config_path, 3000),
+        evaluator,
+        Path('saved', 'aaai-multi', 'frap'),
     )
 
+
 if __name__ == '__main__':
-    #train_aaai()
     train_2v2()
