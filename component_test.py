@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import pika
 import json
@@ -6,7 +5,6 @@ from functools import partial
 
 from environments.sumo_env import SumoEnv
 from settings import PROJECT_ROOT, JSONS_FOLDER
-
 
 REPLY_TO = "amq.rabbitmq.reply-to"
 
@@ -19,7 +17,9 @@ def publish(state, routing):
     }
 
     channel.basic_publish(
-        exchange='', routing_key=routing, body=json.dumps(inp), properties=pika.BasicProperties(reply_to=REPLY_TO))
+        exchange='', routing_key=routing, body=json.dumps(inp),
+        properties=pika.BasicProperties(reply_to=REPLY_TO)
+    )
 
 
 def callback(env, publish_queue, ch, method, properties, body):
@@ -40,20 +40,26 @@ if __name__ == "__main__":
     model = str(input("model name: "))
 
     credentials = pika.PlainCredentials(f'{model}_client', 'tajnehaslo')
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=address, port=5672, virtual_host="traffily", credentials=credentials))
-    channel = connection.channel()
-
     env = SumoEnv.from_config_file(
         Path(JSONS_FOLDER, 'configs', 'aaai.json')).create_runner(True)
-
-    state, _, _, _ = env.step(0)
-
+    state = env.reset()
     callback = partial(callback, env, f"{model}_requests")
-    channel.basic_consume(REPLY_TO, callback, True)
+    while True:
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=address, port=5672, virtual_host="traffily", credentials=credentials))
+        channel = connection.channel()
 
-    publish(state, f"{model}_requests")
+        channel.basic_consume(REPLY_TO, callback, True)
 
-    channel.start_consuming()
+        publish(state, f"{model}_requests")
 
-    channel.close()
+        try:
+            channel.start_consuming()
+        except Exception:
+            print("Connection closed. Reconnecting")
+            continue
+        except KeyboardInterrupt:
+            channel.stop_consuming()
+
+        channel.close()
+        break
