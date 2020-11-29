@@ -3,5 +3,6 @@
     "vhost": "traffily",
     "requests_queue": "2x2_requests",
     "user": "2x2_client",
-    "password": "tajnehaslo"
+    "password": "tajnehaslo",
+    "env": "example_test_all_equal.json"
 }
