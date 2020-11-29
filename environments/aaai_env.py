@@ -48,7 +48,7 @@ class AaaiEnvRunner(SumoEnvRunner):
         arrived_cars = set()
 
         accumulated_travel_time = 0
-        if self.connection.simulation.getTime() > self.max_steps:
+        if self.connection.simulation.getTime() > self.max_steps and self.max_steps != -1:
             return True, arrived_cars, accumulated_travel_time
 
         self._generate_vehicles()

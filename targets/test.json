@@ -1,0 +1,7 @@
+{
+    "address": "wojsik.codes",
+    "vhost": "traffily",
+    "requests_queue": "2x2_requests",
+    "user": "2x2_client",
+    "password": "tajnehaslo"
+}
