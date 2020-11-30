@@ -1,67 +1,116 @@
 from pathlib import Path
-import pika
 import json
 from functools import partial
+import asyncio
+import aio_pika
 import argparse
-from time import sleep
 import math
+import uuid
+from datetime import datetime
 
 from environments.sumo_env import SumoEnv
-from settings import PROJECT_ROOT, JSONS_FOLDER
+from settings import JSONS_FOLDER
 
-REPLY_TO = "amq.rabbitmq.reply-to"
 
 parser = argparse.ArgumentParser("app to test component")
 parser.add_argument("settings", help="client settings file name")
-parser.add_argument("--max_steps", type=int, default=-1, help="simulation max steps, -1==infinite")
-parser.add_argument("--no_render", default=True, action="store_false", help="render mode, default True")
+parser.add_argument("--max_steps", type=int, default=-1,
+                    help="simulation max steps, -1==infinite")
+parser.add_argument("--no_render", default=True,
+                    action="store_false", help="render mode, default True")
+
+RETRY_COUNT = 100
+PUBLISH_TIMEOUT = 20
+
+channel = None
+
+current_timestamp = 0
 
 
 class Settings:
     def __init__(self, file_name):
-        with open(Path(PROJECT_ROOT, 'tester_settings', file_name)) as json_file:
+        with open(Path(JSONS_FOLDER, 'tester_settings', file_name)) as json_file:
             data = json.load(json_file)
 
             self.address = data["address"]
             self.vhost = data["vhost"]
             self.requests_queue = data["requests_queue"]
+            self.responses_queue = data["responses_queue"]
+            self.responses_exchange = data["responses_exchange"]
             self.user = data["user"]
             self.password = data["password"]
             self.env_file = data["env"]
+            self.uuid = str(uuid.uuid1())
 
 
-def publish(channel, state, routing):
+async def publish(state, settings, timestamp):
     inp = {
         "last_action": int(state[0]),
         "in_states": [int(i) for i in state[1:]],
-        "out_states": [0 for _ in range(12)]
+        "out_states": [0 for _ in range(12)],
+        "timestamp": str(timestamp)
     }
 
-    channel.basic_publish(
-        exchange='', routing_key=routing, body=json.dumps(inp),
-        properties=pika.BasicProperties(reply_to=REPLY_TO)
+    return await channel.default_exchange.publish(
+        aio_pika.Message(
+            body=json.dumps(inp).encode(), reply_to=settings.uuid
+        ),
+        routing_key=settings.requests_queue,
+        timeout=PUBLISH_TIMEOUT,
     )
 
 
-def callback(env, publish_queue, ch, method, properties, body):
-    data = json.loads(body)
-    print(f"data: {data}")
+async def process_message(settings, message: aio_pika.IncomingMessage):
+    with message.process(requeue=True, ignore_processed=True):
+        global current_timestamp
+        data = json.loads(message.body.decode())
+        print(f"data: {data}")
 
-    if data['code'] == 0:
-        action = int(data['action'])
-        state, _, done, _ = env.step(action)
-    else:
-        print(f"error: {data['code']} cause: {data['cause']}")
-        done = False
+        received_timestamp = float(data["timestamp"])
 
-    if done:
-        env.close()
-        ch.stop_consuming()
-    else:
-        publish(ch, state, publish_queue)
+        if received_timestamp >= current_timestamp:
+            if data['code'] == 0:
+                action = int(data['action'])
+                state, _, done, _ = env.step(action)
+            else:
+                print(f"error: {data['code']} cause: {data['cause']}")
+                done = False
+
+            if done:
+                exit(0)
+
+            timestamp = datetime.timestamp(datetime.now())
+            await publish(state, settings, timestamp)
+            current_timestamp = max(timestamp, current_timestamp)
+        else:
+            print("received old message, skipping ...")
+            print(
+                f'timestamp: {data["timestamp"]} waiting for: {current_timestamp}')
+
+
+async def main(loop, settings):
+    global channel
+    global current_timestamp
+    url = f'amqp://{settings.user}:{settings.password}@{settings.address}/{settings.vhost}'
+    connection = await aio_pika.connect_robust(
+        url=url, loop=loop
+    )
+
+    channel = await connection.channel()
+
+    queue = await channel.declare_queue(name=settings.uuid, auto_delete=False, durable=True, arguments={"x-queue-type": "quorum"})
+
+    consumer = partial(process_message, settings)
+
+    await queue.consume(consumer, no_ack=False)
+    await publish(state, settings, current_timestamp)
+    return connection
 
 
 if __name__ == "__main__":
+    global state
+    global env
+
     args = parser.parse_args()
 
     settings_file = args.settings
@@ -70,46 +119,17 @@ if __name__ == "__main__":
 
     settings = Settings(settings_file)
 
-    credentials = pika.PlainCredentials(settings.user, settings.password)
+    print(settings.uuid)
 
     env = SumoEnv.from_config_file(
-        Path(JSONS_FOLDER, 'configs', settings.env_file), max_steps).create_runner(render=render)
+        Path(JSONS_FOLDER, 'configs', settings.env_file), max_steps=max_steps).create_runner(render=render)
 
     state = env.reset()
-    callback = partial(callback, env, settings.requests_queue)
 
-    retries = 0
-    while True:
-        if retries > 5:
-            retries = 5
+    loop = asyncio.get_event_loop()
+    connection = loop.run_until_complete(main(loop, settings))
 
-        backoff = 0.05 * math.exp(retries)
-        try:
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=settings.address, port=5672, virtual_host=settings.vhost, credentials=credentials))
-            channel = connection.channel()
-
-            channel.basic_consume(REPLY_TO, callback, True)
-
-            publish(channel, state, settings.requests_queue)
-            retries = 0
-        except Exception as e:
-            print("Unable to connect. Retrying ...")
-            sleep(backoff)
-            retries += 1
-            continue
-
-        try:
-            channel.start_consuming()
-        except Exception as e:
-            print(f"DEBUG: {e}")
-            print("Connection closed. Reconnecting ...")
-            backoff = 0.05 * math.exp(retries)
-            sleep(backoff)
-            retries += 1
-            continue
-        except KeyboardInterrupt:
-            channel.stop_consuming()
-
-        channel.close()
-        break
+    try:
+        loop.run_forever()
+    finally:
+        loop.run_until_complete(connection.close())

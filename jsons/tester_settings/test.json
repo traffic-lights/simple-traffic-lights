@@ -1,7 +1,9 @@
 {
-    "address": "wojsik.codes",
+    "address": "20.54.34.133",
     "vhost": "traffily",
     "requests_queue": "2x2_requests",
+    "responses_queue": "2x2_responses",
+    "responses_exchange": "responses",
     "user": "2x2_client",
     "password": "tajnehaslo",
     "env": "example_test_all_equal.json"
