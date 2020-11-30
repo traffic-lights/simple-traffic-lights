@@ -7,9 +7,10 @@ from torch.optim import Adam
 from environments.sumo_env import SumoEnv
 from evaluation.evaluator import Evaluator
 from memory.prioritized_memory import Memory
+from fromOpenAIBaselines.replay_buffer import PrioritizedReplayBuffer
 from models.frap import Frap
 from models.neural_net import SimpleLinear
-from settings import JSONS_FOLDER
+from settings import JSONS_FOLDER, PROJECT_ROOT
 from trainings.training import get_model_name, main_train
 from trainings.training_parameters import TrainingParameters, TrainingState
 
@@ -23,7 +24,7 @@ def get_new_training():
         model_name,
         pre_train_steps=1500,
         tau=0.001,
-        lr=0.0001
+        lr=0.0001,
     )
 
     memory = Memory(training_param.memory_size)
@@ -52,13 +53,54 @@ def get_frap_training():
     training_param = TrainingParameters(
         model_name,
         pre_train_steps=1500,
-        tau=0.001,
-        lr=0.0001,
+        tau=1.0,
+        target_update_freq=100,
+        lr=0.0003,
         save_freq=1,
-        test_freq=50
+        test_freq=300,
+        memory_size=20000,
+        batch_size=512,
+        annealing_steps=8000
     )
 
-    memory = Memory(training_param.memory_size)
+    memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
+
+    net = Frap(32, 16, 16, 2, 16)
+    target_net = Frap(32, 16, 16, 2, 16)
+
+    target_net.eval()
+
+    target_net.load_state_dict(net.state_dict())
+    optimizer = Adam(net.parameters(), lr=training_param.lr)
+
+    loss_fn = MSELoss()
+    return TrainingState(
+        training_param,
+        net,
+        target_net,
+        optimizer,
+        loss_fn,
+        memory,
+        ['gneJ18']
+    )
+
+
+def get_frap_training_2v2():
+    model_name = get_model_name('frap')
+    training_param = TrainingParameters(
+        model_name,
+        pre_train_steps=1500,
+        tau=0.00005,
+        target_update_freq=1,
+        lr=0.0003,
+        save_freq=1,
+        test_freq=300,
+        memory_size=100000,
+        batch_size=512,
+        annealing_steps=50000
+    )
+
+    memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
 
     net = Frap(32, 16, 16, 2, 16)
     target_net = Frap(32, 16, 16, 2, 16)
@@ -92,18 +134,20 @@ def train_aaai():
 
 
 def train_2v2():
+
     env_config_path = Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json')
 
-    training_state = get_frap_training()
+    training_state = get_frap_training_2v2()
     training_state.junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
+    evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', '2v2_small_subset.json'))
 
     main_train(
         training_state,
-        SumoEnv.from_config_file(env_config_path),
-        None,
-        Path('saved', 'aaai', 'frap'),
+        SumoEnv.from_config_file(env_config_path, 3000),
+        evaluator,
+        Path('saved', 'aaai-multi', 'frap'),
     )
 
+
 if __name__ == '__main__':
-    #train_aaai()
     train_2v2()

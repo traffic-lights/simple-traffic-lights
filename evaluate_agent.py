@@ -13,8 +13,10 @@ from traffic_controllers.vehicle_number_controller import VehicleNumberControlle
 
 from trainings.training_parameters import TrainingState
 
+
 def main():
-    evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
+    #evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
 
     osm_phase_map = {
         0: ["gneE8_0", "gneE8_1", "166869096#1_0", "166869096#1_1",
@@ -24,19 +26,28 @@ def main():
         3: ["166869096#1_0", "166869096#1_1", "gneE1_0", "gneE1_1", "gneE18_0", "gneE18_1"]
     }
 
-    controller_map_osm = {
-        "cluster1": VehicleNumberController(osm_phase_map)
-    }
+    controller1 = VehicleNumberController(osm_phase_map)
 
-    all_metrics = evaluator.evaluate_all_dicts([controller_map_osm])
+    controller2 = RandomSwitchController(range(8))
 
-    for i, set_metrics in enumerate(all_metrics):
-        print('SET %d' % i)
-        for test_name, metric_dict in set_metrics.items():
-            print(test_name.upper(), end=' ')
-            for metric_name, val in metric_dict.items():
-                print('%s=%d' % (metric_name, val), end=' ')
-            print()
+    phase_map = get_phase_map()
+    print(phase_map.keys())
+    controllers3 = [VehicleNumberController(phase) for tls_id, phase in phase_map.items()]
+
+    training_state = TrainingState.from_path(
+        Path('saved', 'aaai-multi', 'frap', 'frap_2020-11-30.22-37-20-340261', 'states',
+             'ep_20_frap_2020-11-30.22-37-20-340261.tar'))
+    model1 = training_state.model
+    model1 = model1.eval()
+
+    controller4 = ModelController(model1)
+
+    metrics = evaluator.evaluate_traffic_controllers([controller4])
+
+    for env_n in metrics[0].keys():
+        print(env_n)
+        for m in metrics:
+            print(m[env_n])
 
 
 if __name__ == '__main__':

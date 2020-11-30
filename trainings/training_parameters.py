@@ -9,6 +9,8 @@ from memory.prioritized_memory import Memory
 from models.utils import get_save_dict, load_model_from_dict
 from models.neural_net import SerializableModel
 
+from fromOpenAIBaselines.replay_buffer import ReplayBuffer
+
 
 @dataclass
 class TrainingParameters:
@@ -31,6 +33,15 @@ class TrainingParameters:
     tau: float = 0.0003  # Rate to update target network toward primary network
     target_update_freq: int = 1  # how often to preform a target net update
 
+    prioritized_repay_alpha: float = 0.6    # how much prioritization is being used
+                                            # (0 - no prioritization, 1 - full prioritization)
+
+    sampler_beta_0: float = 0.4
+    sampler_beta_max: float = 1.0
+    sampler_current_beta: float = sampler_beta_0
+
+    prioritized_replay_eps: float = 1e-6
+
     lr: float = 0.0001
 
     total_steps: int = 0  # how many steps performed
@@ -42,6 +53,7 @@ class TrainingParameters:
 
     def __post_init__(self):
         self.step_drop = (self.start_e - self.end_e) / self.annealing_steps
+        self.beta_inc = (self.sampler_beta_max - self.sampler_beta_0) / self.annealing_steps
 
 
 def get_optimizer_dict(optimizer):
@@ -72,7 +84,7 @@ class TrainingState:
     target_model: SerializableModel
     optimizer: Optimizer
     loss_fn: nn.Module
-    replay_memory: Memory
+    replay_memory: ReplayBuffer
     junctions: List[str]
 
     def save(self, path):
@@ -81,7 +93,7 @@ class TrainingState:
             'target_model': get_save_dict(self.target_model),
             'optimizer': get_optimizer_dict(self.optimizer),
             'loss_fn': self.loss_fn,
-            'replay_memory': self.replay_memory.get_save_dict(),
+            #'replay_memory': self.replay_memory.get_save_dict(),
             'training_parameters': asdict(self.training_parameters),
             'junctions': self.junctions
         }
@@ -93,10 +105,10 @@ class TrainingState:
         model = load_model_from_dict(my_dict['model'])
         target_model = load_model_from_dict(my_dict['target_model'])
 
-        optim = load_optim_from_dict(my_dict['optimizer'], model)
-        mem = Memory.load_from_dict(my_dict['replay_memory'])
+        #optim = load_optim_from_dict(my_dict['optimizer'], model)
+        #mem = Memory.load_from_dict(my_dict['replay_memory'])
 
-        junctions = my_dict['junctions']
+        junctions = None#my_dict['junctions']
         #junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
 
         training_parameters = TrainingParameters(**my_dict['training_parameters'])
@@ -105,8 +117,8 @@ class TrainingState:
             training_parameters,
             model,
             target_model,
-            optim,
+            None,
             my_dict['loss_fn'],
-            mem,
+            None,
             junctions
         )

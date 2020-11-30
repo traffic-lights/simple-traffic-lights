@@ -6,15 +6,19 @@ from environments.sumo_env import SumoEnv
 from settings import PROJECT_ROOT
 import numpy as np
 
-def evaluate_controllers_dict(runner, controllers, max_ep_len):
+
+def evaluate_controller(runner, controllers):
     states = runner.reset()
     ep_len = 0
     done = False
     all_rewards = []
 
+    if not isinstance(controllers, list):
+        controllers = [controllers] * len(runner.junctions)
+
     while not done:
         actions = []
-        for i, controller in enumerate(controllers.values()):
+        for i, controller in enumerate(controllers):
             state = states[i]
             actions.append(controller(state))
 
@@ -44,39 +48,33 @@ class Evaluator:
             for test_case in self.test_cases_list
         }
 
-    def _evaluate_traffic_controllers_dict(self, traffic_controllers_dict):
+    def evaluate_traffic_controllers(self, traffic_controllers):
+        """
+        :param traffic_controllers: list of controllers
+        :return: list of metrics for each controller, in the same order as given list of controllers
+        """
 
-        metrics = {}
+        if not isinstance(traffic_controllers, list):
+            traffic_controllers = [traffic_controllers]
+
+        metrics = [{} for _ in traffic_controllers]
 
         for env_name, env in self.environments.items():
-            print('evaluating %s' % env_name)
-            with env.create_runner(render=True) as runner:
-                controllers_with_connection = {junction: controller.with_connection(runner.connection) for
-                                               junction, controller in traffic_controllers_dict.items()}
+            with env.create_runner(render=False) as runner:
+                for i_controller, controller in enumerate(traffic_controllers):
+                    if not isinstance(controller, list):
+                        controller = [controller]
+                    controller = [c.with_connection(runner.connection) for c in controller]
 
-                metrics[env_name] = evaluate_controllers_dict(runner, controllers_with_connection, max_ep_len=300)
-
-                print('res: ', metrics[env_name])
+                    metrics[i_controller][env_name] = evaluate_controller(runner, controller)
 
         return metrics
 
-    def evaluate_all_dicts(self, traffic_controllers_dicts):
-
-        if not isinstance(traffic_controllers_dicts, list):
-            traffic_controllers_dicts = [traffic_controllers_dicts]
-
-        all_metrics = []
-        for i, traffic_controllers_dict in enumerate(traffic_controllers_dicts):
-            print('evaluating set %d' % i)
-            all_metrics.append(self._evaluate_traffic_controllers_dict(traffic_controllers_dict))
-
-        return all_metrics
-    '''
     def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step):
         controller_names = list(traffic_controllers_dict.keys())
         controllers = list(traffic_controllers_dict.values())
 
-        metrics = self._evaluate_traffic_controllers_dict(controllers)
+        metrics = self.evaluate_traffic_controllers(controllers)
 
         scalars = defaultdict(dict)
 
@@ -89,4 +87,3 @@ class Evaluator:
             tf_writer.add_scalars(tag_name, scalar, step)
 
         tf_writer.flush()
-    '''

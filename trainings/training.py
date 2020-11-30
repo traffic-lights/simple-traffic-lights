@@ -5,50 +5,54 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.nn import MSELoss
-from torch.optim import Adam
 
-from environments.simple_env import SimpleEnv
 from environments.sumo_env import SumoEnv
 from evaluation.evaluator import Evaluator
-from memory.prioritized_memory import Memory
-from models.frap import Frap
-from models.neural_net import DQN
 from torch.utils.tensorboard import SummaryWriter
 
 from traffic_controllers.model_controller import ModelController
 from trainings.training_parameters import TrainingParameters, TrainingState
 
 
-def train_all_batches(memory, net, target_net, optimizer, loss_fn,
+def train_all_batches(memory, beta, prioritized_replay_eps, net, target_net, optimizer, loss_fn,
                       batch_size, disc_factor, device=torch.device('cpu')):
+
+    experience = memory.sample(batch_size, beta)
+    states, actions, rewards, next_states, dones, weights, batch_idxs = experience
+
+    states = torch.tensor(states, dtype=torch.float32, device=device)
+    actions = torch.tensor(actions, dtype=torch.long, device=device)
+    rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+    next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
+    dones = torch.tensor(dones, dtype=torch.bool, device=device)
+
     net = net.train()
-    losses = []
-    for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
-        with torch.no_grad():
-            next_value = torch.max(target_net(batch['next_state']), dim=1)[0]
 
-        actual_value = torch.where(
-            batch['done'],
-            batch['reward'],
-            batch['reward'] + disc_factor * next_value).unsqueeze(-1)
+    #for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
+    with torch.no_grad():
+        next_value = torch.max(target_net(next_states), dim=1)[0]
 
-        my_value = net(batch['state']).gather(1, batch['action'].unsqueeze(-1))
+    actual_value = torch.where(
+        dones,
+        rewards,
+        rewards + disc_factor * next_value).unsqueeze(-1)
 
-        errors = torch.abs(actual_value - my_value).cpu().detach().numpy()
+    my_value = net(states).gather(1, actions.unsqueeze(-1))
 
-        # update priority
-        for i, idx in enumerate(batch['id']):
-            memory.update(idx, errors[i])
+    errors = torch.abs(actual_value - my_value).cpu().detach().numpy()
+    new_priorites = np.abs(errors) + prioritized_replay_eps
+    memory.update_priorities(batch_idxs, new_priorites)
 
-        optimizer.zero_grad()
-        loss = (batch['is_weight'] * loss_fn(actual_value, my_value)).mean()
-        losses.append(loss.item())
+    optimizer.zero_grad()
+    loss = loss_fn(actual_value, my_value).mean()
 
-        loss.backward()
-        optimizer.step()
+    loss.backward()
+    #torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
+    optimizer.step()
 
-    return np.mean(losses)
+    optimizer.step()
+
+    return loss
 
 
 def update_target_net(net, target_net, tau):
@@ -70,10 +74,6 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     training_state.model.to(device)
     training_state.target_model.to(device)
 
-    controllers = {}
-    for junction in training_state.junctions:
-        controllers[junction] = training_state.model
-
     rewards_queue = deque(maxlen=300)
 
     save_root = Path(save_root, params.model_name)
@@ -85,7 +85,7 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     print(tensorboard_save_root.resolve())
     writer = SummaryWriter(tensorboard_save_root)
-    with env.create_runner(render=True) as runner:
+    with env.create_runner(render=False) as runner:
 
         while params.current_episode < params.num_episodes:
 
@@ -93,34 +93,39 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
 
             ep_len = 0
             done = False
-            while not done and ep_len < params.max_ep_len:
+            while not done:  # and ep_len < params.max_ep_len:
                 ep_len += 1
                 params.total_steps += 1
-                actions = {}
+
                 if random.random() < params.current_eps or params.total_steps < params.pre_train_steps:
-                    for tls_id, _ in controllers.items():
-                        actions[tls_id] = runner.action_space.sample()
+                    actions = runner.action_space.sample()
                 else:
-                    for tls_id, controller in controllers.items():
-                        tensor_state = torch.tensor([states[tls_id]], dtype=torch.float32, device=device)
-                        actions[tls_id] = controller(tensor_state).max(1)[1].cpu().detach().numpy()[0].item()
+                    tensor_state = torch.tensor(states, dtype=torch.float32, device=device)
+                    actions = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy().tolist()
 
                 next_states, rewards, done, info = runner.step(actions)
-                rewards_queue.extend(list(rewards.values()))
+                rewards_queue.extend(info['reward'])
                 print(params.total_steps, np.mean(rewards_queue))
 
-                for tls_id, _ in controllers.items():
-                    training_state.replay_memory.add_experience(training_state, states[tls_id], actions[tls_id], rewards[tls_id], next_states[tls_id], done,
-                                                                device)
+                for s, r, a, n_s in zip(next_states, info['reward'], actions, next_states):
+                    training_state.replay_memory.add(
+                        s, a, r, n_s, done
+                    )
+
                 states = next_states
 
                 if params.total_steps > params.pre_train_steps:
                     if params.current_eps > params.end_e:
                         params.current_eps -= params.step_drop
 
+                    if params.sampler_current_beta > params.sampler_beta_max:
+                        params.sampler_current_beta += params.sampler_beta_max
+
                     if params.total_steps % params.training_freq == 0:
                         mean_loss = train_all_batches(
                             training_state.replay_memory,
+                            params.sampler_current_beta,
+                            params.prioritized_replay_eps,
                             training_state.model, training_state.target_model,
                             training_state.optimizer,
                             training_state.loss_fn, params.batch_size, params.disc_factor, device=device)
@@ -129,13 +134,13 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
-                    #if evaluator is not None and params.total_steps % params.test_freq == 0:
-                    #    evaluator.evaluate_to_tensorboard(
-                    #        {'model': ModelController(training_state.model.eval(), device)},
-                    #        writer,
-                    #        params.total_steps
-                    #    )
-                    #    training_state.model = training_state.model.train()
+                    if evaluator is not None and params.total_steps % params.test_freq == 0:
+                        evaluator.evaluate_to_tensorboard(
+                            {'model': ModelController(training_state.model.eval(), device)},
+                            writer,
+                            params.total_steps
+                        )
+                        training_state.model = training_state.model.train()
 
             writer.flush()
 
