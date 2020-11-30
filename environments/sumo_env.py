@@ -26,6 +26,7 @@ class SumoEnvRunner(gym.Env):
         self.env_name = env_name
         with semaphore:
             self.unique_id = str(uuid.uuid4())
+            print(self.sumo_cmd)
             traci.start(self.sumo_cmd, label=self.unique_id)
             if 'sumo' in self.sumo_cmd:
                 self.sumo_cmd.remove('sumo')

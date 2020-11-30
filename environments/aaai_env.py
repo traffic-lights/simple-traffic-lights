@@ -16,11 +16,16 @@ class AaaiEnvRunner(SumoEnvRunner):
                  traffic_movements,
                  traffic_lights_phases,
                  light_duration,
+                 clusters,
                  max_steps=1500,
                  env_name=None):
         super().__init__(sumo_cmd, vehicle_generator_config, max_steps, env_name=env_name)
 
+        if not clusters:
+            clusters = {}
+
         self.junctions = junctions
+        self.cluster_map = clusters
         self.traffic_lights_phases = traffic_lights_phases
 
         self.observation_space = spaces.Space(shape=(len(junctions), traffic_movements + 1))
@@ -28,7 +33,17 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.light_duration = light_duration
 
-        self.previous_actions = {junction: 0 for junction in junctions}
+        self.previous_actions = {}
+        self.clustered_juncions = {}
+        for junction in self.junctions:
+            cluster = self.cluster_map.get(junction)
+            if cluster:
+                for jun, _ in cluster["tls_to_phases"].items():
+                    self.clustered_juncions[jun] = junction
+                    self.previous_actions[jun] = (0, 1, 2, 3)
+            else:
+                self.previous_actions[junction] = (0, 1, 2, 3)
+
         self.traveling_cars = {}
 
         self.travel_time = 0
@@ -66,22 +81,45 @@ class AaaiEnvRunner(SumoEnvRunner):
         return dct
 
     def _snap_state(self):
-        states = {
-            junction: [0] * 13 for junction in self.junctions
-        }
-        for tls_id, action in self.previous_actions.items():
-            pressures = [action]
 
-            for entry in self.connection.trafficlight.getControlledLinks(tls_id):
-                if entry:
-                    entry_tuple = entry[0]
-                    if entry_tuple:
-                        my_pressure = self.connection.lane.getLastStepVehicleNumber(
-                            entry_tuple[0]
-                        ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
-                        pressures.append(my_pressure)
+        states = {}
+        for junction in self.junctions:
+            cluster = self.cluster_map.get(junction)
+            if cluster:
+                states[junction] = [0] * (1 + len(cluster["traffic_movements"]))
+            else:
+                states[junction] = [0] * 13
 
-            states[tls_id] = pressures
+        clustered_links = set()
+
+        for tls_id, phases in self.previous_actions.items():
+
+            pressures = [phases[0]]
+
+            cluster = self.clustered_juncions.get(tls_id)
+
+            if cluster:
+                if cluster not in clustered_links:
+                    clustered_links.add(cluster)
+                    for incoming, outgoing in self.cluster_map[cluster]["traffic_movements"]:
+                        pressures.append(self.connection.lane.getLastStepVehicleNumber(incoming) -
+                                         self.connection.lane.getLastStepVehicleNumber(outgoing))
+
+                    states[cluster] = pressures
+            else:
+                for entry in self.connection.trafficlight.getControlledLinks(tls_id):
+                    if entry:
+                        entry_tuple = entry[0]
+                        if entry_tuple:
+                            my_pressure = self.connection.lane.getLastStepVehicleNumber(
+                                entry_tuple[0]
+                            ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
+                            pressures.append(my_pressure)
+
+                states[tls_id] = pressures
+
+        print(states)
+
         return np.asarray(self.dict_states_to_array(states), dtype='float32')
 
     def _simulate_step(self):
@@ -109,13 +147,13 @@ class AaaiEnvRunner(SumoEnvRunner):
         self.restarted = False
         return False, arrived_cars, accumulated_travel_time
 
-    def _proceed_actions(self, phase_changes, phase_shift_f):
+    def _proceed_actions(self, phase_changes, phase_change_id):
         arrived_cars = set()
 
         accumulated_travel_time = 0
 
-        for tls_id, phase in phase_changes.items():
-            self.connection.trafficlight.setPhase(tls_id, phase_shift_f(phase))
+        for tls_id, phases in phase_changes.items():
+            self.connection.trafficlight.setPhase(tls_id, phases[phase_change_id])
 
         start_time = self.connection.simulation.getTime()
         dur = self.connection.trafficlight.getPhaseDuration(next(iter(phase_changes.keys())))
@@ -128,7 +166,25 @@ class AaaiEnvRunner(SumoEnvRunner):
         return arrived_cars, accumulated_travel_time
 
     def _take_action(self, action):
-        actions = dict(zip(self.junctions, action))
+        actions = list(zip(self.junctions, action))
+
+        def yellow(act):
+            return 3 * act + 1
+
+        def red(act):
+            return 3 * act + 2
+
+        processed_actions = {}
+        for jun, act in actions:
+            cluster = self.cluster_map.get(jun)
+            if cluster:
+                for tls_id, phases in cluster["tls_to_phases"].items():
+                    processed_actions[tls_id] = [act] + phases[act]
+            else:
+                processed_actions[jun] = (act, 3 * act, yellow(act), red(act))
+
+        actions = processed_actions
+
 
         arrived_cars = set()
 
@@ -137,36 +193,30 @@ class AaaiEnvRunner(SumoEnvRunner):
         rewards = {}
         pressures = {}
 
-        def yellow(act):
-            return 3 * act + 1
-
-        def red(act):
-            return 3 * act + 2
-
         # turn yellow and red light if different action
 
         if not self.restarted:
 
             phase_changes = {}
 
-            for tls_id, act in actions.items():
-                if act != self.previous_actions[tls_id]:
+            for tls_id, phases in actions.items():
+                if phases != self.previous_actions[tls_id]:
                     phase_changes[tls_id] = self.previous_actions[tls_id]
 
             if phase_changes:
                 # yellows
-                my_cars, my_time = self._proceed_actions(phase_changes, yellow)
+                my_cars, my_time = self._proceed_actions(phase_changes, 2)
                 arrived_cars |= my_cars
                 accumulated_travel_time += my_time
                 # reds
-                my_cars, my_time = self._proceed_actions(phase_changes, red)
+                my_cars, my_time = self._proceed_actions(phase_changes, 3)
                 arrived_cars |= my_cars
                 accumulated_travel_time += my_time
 
         self.previous_actions = actions
 
-        for tls_id, act in actions.items():
-            self.connection.trafficlight.setPhase(tls_id, 3 * act)
+        for tls_id, phases in actions.items():
+            self.connection.trafficlight.setPhase(tls_id, phases[1])
             self.connection.trafficlight.setPhaseDuration(tls_id, self.light_duration)
 
         start_time = self.connection.simulation.getTime()
@@ -215,7 +265,14 @@ class AaaiEnvRunner(SumoEnvRunner):
     def _reset(self):
         self.travel_time = 0
         self.throughput = 0
-        self.previous_actions = {junction: 0 for junction in self.junctions}
+        self.previous_actions = {}
+        for junction in self.junctions:
+            cluster = self.cluster_map.get(junction)
+            if cluster:
+                for jun, _ in cluster["tls_to_phases"].items():
+                    self.previous_actions[jun] = (0, 1, 2, 3)
+            else:
+                self.previous_actions[junction] = (0, 1, 2, 3)
         self.traveling_cars = {}
         self.restarted = True
 
@@ -238,6 +295,7 @@ class AaaiEnv(SumoEnv):
             self.traffic_movements,
             self.traffic_lights_phases,
             self.light_duration,
+            self.clusters,
             self.max_steps,
             self.env_name
         )
@@ -247,7 +305,8 @@ class AaaiEnv(SumoEnv):
                  junctions=None,
                  traffic_movements=TRAFFIC_MOVEMENTS,
                  traffic_lights_phases=TRAFFICLIGHTS_PHASES,
-                 light_duration=LIGHT_DURATION):
+                 light_duration=LIGHT_DURATION,
+                 clusters=None):
         super().__init__(sumocfg_file_path, vehicle_generator_config, max_steps, env_name=env_name)
         if junctions is None:
             junctions = ['gneJ18']
@@ -255,3 +314,4 @@ class AaaiEnv(SumoEnv):
         self.traffic_movements = traffic_movements
         self.traffic_lights_phases = traffic_lights_phases
         self.light_duration = light_duration
+        self.clusters = clusters

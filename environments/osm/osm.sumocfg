@@ -1,0 +1,11 @@
+<configuration>
+    <gui_only>
+        <start value="true"/>
+        <quit-on-end value="true"/>
+    </gui_only>
+
+    <input>
+        <net-file value="osm.net.xml" />
+        <route-files value="osm.rou.xml" />
+    </input>
+</configuration>

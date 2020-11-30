@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+	<route edges="gneE8 166843151#2 383825801 377115649" id="route_0"/>
+    <route edges="gneE8 166843151#2 383825801 377115654 377115652 164663598" id="route_1"/>
+    <route edges="gneE8 166843151#2 525636244 164663595" id="route_2"/>
+    <route edges="gneE7 164663597#2 377115649" id="route_4"/>
+    <route edges="gneE7 164663597#2 377115654 377115652 164663598" id="route_5"/>
+    <route edges="166869096#1 166869096#2 377115652 164663598" id="route_6"/>
+    <route edges="166869096#1 166869096#2 377115655 gneE16 gneE17" id="route_7"/>
+    <route edges="gneE1 164663599#2 164663594 525636244 164663595" id="route_8"/>
+    <route edges="gneE1 164663599#2 164663594 383825801 377115649" id="route_9"/>
+    <route edges="gneE18 gneE19 gneE17" id="route_10"/>
+</routes>

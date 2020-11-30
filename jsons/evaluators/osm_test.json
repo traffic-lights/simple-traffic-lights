@@ -1,0 +1,8 @@
+{
+    "test_cases": [
+        {
+            "name": "test",
+            "config": "jsons/configs/osm/test.json"
+        }
+    ]
+}
