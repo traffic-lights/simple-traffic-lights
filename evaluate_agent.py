@@ -15,13 +15,13 @@ from trainings.training_parameters import TrainingState
 
 
 def main():
-    evaluator = Evaluator.from_file("jsons/evaluators/2v2_all_equal.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/4v4_test.json")
 
     model = Frap()
-    # model_path = str(Path(PROJECT_ROOT, 'model', 'params.pkl'))
-    # model_w = torch.load(model_path, map_location='cpu')
-    # model.load_state_dict(model_w['agent_state_dict']['model'])
-    # model = model.eval()
+    model_path = str(Path(PROJECT_ROOT, 'model', 'params3.pkl'))
+    model_w = torch.load(model_path, map_location='cpu')
+    model.load_state_dict(model_w['agent_state_dict']['model'])
+    model = model.eval()
 
     model_controller = ModelController(model)
 
@@ -52,3 +52,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
