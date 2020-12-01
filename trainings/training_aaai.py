@@ -89,15 +89,15 @@ def get_frap_training_2v2():
     model_name = get_model_name('frap')
     training_param = TrainingParameters(
         model_name,
-        pre_train_steps=1500,
-        tau=0.00005,
+        pre_train_steps=2000,
+        tau=0.00009,
         target_update_freq=1,
-        lr=0.0003,
+        lr=0.00009,
         save_freq=1,
         test_freq=300,
         memory_size=100000,
         batch_size=512,
-        annealing_steps=50000
+        annealing_steps=30000
     )
 
     memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
@@ -134,7 +134,6 @@ def train_aaai():
 
 
 def train_2v2():
-
     env_config_path = Path(JSONS_FOLDER, 'configs', '2v2', 'all_equal.json')
 
     training_state = get_frap_training_2v2()
