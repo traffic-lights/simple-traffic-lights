@@ -1,0 +1,9 @@
+{
+    "address": "20.54.95.211",
+    "vhost": "traffily",
+    "requests_queue": "2x2_requests",
+    "responses_queue": "test_client_responses",
+    "user": "test_client",
+    "password": "tajnehaslo",
+    "env": "example_test_all_equal.json"
+}
