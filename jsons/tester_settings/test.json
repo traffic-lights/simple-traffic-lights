@@ -1,5 +1,5 @@
 {
-    "address": "20.54.34.133",
+    "address": "20.54.95.211",
     "vhost": "traffily",
     "requests_queue": "2x2_requests",
     "responses_queue": "2x2_responses",

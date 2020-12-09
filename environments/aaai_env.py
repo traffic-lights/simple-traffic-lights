@@ -118,7 +118,7 @@ class AaaiEnvRunner(SumoEnvRunner):
 
                 states[tls_id] = pressures
 
-        print(states)
+        # print(states)
 
         return np.asarray(self.dict_states_to_array(states), dtype='float32')
 
