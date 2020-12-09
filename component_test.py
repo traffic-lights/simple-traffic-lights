@@ -5,7 +5,6 @@ import asyncio
 import aio_pika
 import argparse
 import math
-import uuid
 from datetime import datetime
 
 from environments.sumo_env import SumoEnv
@@ -36,11 +35,9 @@ class Settings:
             self.vhost = data["vhost"]
             self.requests_queue = data["requests_queue"]
             self.responses_queue = data["responses_queue"]
-            self.responses_exchange = data["responses_exchange"]
             self.user = data["user"]
             self.password = data["password"]
             self.env_file = data["env"]
-            self.uuid = str(uuid.uuid1())
 
 
 async def publish(state, settings, timestamp):
@@ -53,7 +50,7 @@ async def publish(state, settings, timestamp):
 
     return await channel.default_exchange.publish(
         aio_pika.Message(
-            body=json.dumps(inp).encode(), reply_to=settings.uuid
+            body=json.dumps(inp).encode(), reply_to=settings.responses_queue
         ),
         routing_key=settings.requests_queue,
         timeout=PUBLISH_TIMEOUT,
@@ -98,7 +95,7 @@ async def main(loop, settings):
 
     channel = await connection.channel()
 
-    queue = await channel.declare_queue(name=settings.uuid, auto_delete=False, durable=True, arguments={"x-queue-type": "quorum"})
+    queue = await channel.get_queue(settings.responses_queue)
 
     consumer = partial(process_message, settings)
 
@@ -118,9 +115,7 @@ if __name__ == "__main__":
     render = args.no_render
 
     settings = Settings(settings_file)
-
-    print(settings.uuid)
-
+    
     env = SumoEnv.from_config_file(
         Path(JSONS_FOLDER, 'configs', settings.env_file), max_steps=max_steps).create_runner(render=render)
 
