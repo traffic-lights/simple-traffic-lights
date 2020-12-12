@@ -1,0 +1,16 @@
+{
+  "test_cases": [
+    {
+      "name": "all_equal",
+      "config": "jsons/configs/4v4/all_equal.json"
+    },
+    {
+      "name": "more_vertically",
+      "config": "jsons/configs/4v4/more_vertically.json"
+    },
+    {
+      "name": "more_horizontally",
+      "config": "jsons/configs/4v4/more_horizontally.json"
+    }
+  ]
+}

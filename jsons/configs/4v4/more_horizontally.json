@@ -1,0 +1,98 @@
+{
+  "environment": {
+    "type": "aaai",
+    "additional_params": {
+      "junctions": ["gneJ1", "gneJ2", "gneJ3", "gneJ4", "gneJ7", "gneJ8", "gneJ9", "gneJ10",
+        "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"],
+      "traffic_movements": 36,
+      "traffic_lights_phases": 8,
+      "light_duration": 1
+    }
+  },
+  "config_file": "4v4/4v4.sumocfg",
+  "vehicle_generator": {
+    "type": "const",
+    "lanes": [
+      {
+        "lane": "-gneE19_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "gneE10_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "gneE5_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "gneE0_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "-gneE24_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "-gneE29_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "-gneE34_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "-gneE39_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "-gneE4_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "-gneE9_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "-gneE14_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "gneE15_1",
+        "active": true,
+        "period": 6
+      },
+      {
+        "lane": "gneE35_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "gneE30_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "gneE25_1",
+        "active": true,
+        "period": 36
+      },
+      {
+        "lane": "gneE20_1",
+        "active": true,
+        "period": 36
+      }
+    ]
+  }
+}
