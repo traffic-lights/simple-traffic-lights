@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch.optim.lr_scheduler import LambdaLR, StepLR
 
 from environments.sumo_env import SumoEnv
 from evaluation.evaluator import Evaluator
@@ -14,9 +15,10 @@ from traffic_controllers.model_controller import ModelController
 from trainings.training_parameters import TrainingParameters, TrainingState
 
 
-def train_all_batches(memory, beta, prioritized_replay_eps, net, target_net, optimizer, loss_fn,
+def train_all_batches(memory, beta,
+                      prioritized_replay_eps, net,
+                      target_net, optimizer, loss_fn,
                       batch_size, disc_factor, device=torch.device('cpu')):
-
     experience = memory.sample(batch_size, beta)
     states, actions, rewards, next_states, dones, weights, batch_idxs = experience
 
@@ -25,10 +27,11 @@ def train_all_batches(memory, beta, prioritized_replay_eps, net, target_net, opt
     rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
     next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
     dones = torch.tensor(dones, dtype=torch.bool, device=device)
+    weights = torch.tensor(weights, dtype=torch.float32, device=device)
 
     net = net.train()
 
-    #for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
+    # for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
     with torch.no_grad():
         next_value = torch.max(target_net(next_states), dim=1)[0]
 
@@ -39,17 +42,21 @@ def train_all_batches(memory, beta, prioritized_replay_eps, net, target_net, opt
 
     my_value = net(states).gather(1, actions.unsqueeze(-1))
 
-    errors = torch.abs(actual_value - my_value).cpu().detach().numpy()
-    new_priorites = np.abs(errors) + prioritized_replay_eps
-    memory.update_priorities(batch_idxs, new_priorites)
+    errors = torch.abs(actual_value - my_value) \
+        .cpu() \
+        .detach() \
+        .numpy()
+
+    new_priorities = np.abs(errors) + prioritized_replay_eps
+    memory.update_priorities(batch_idxs, new_priorities)
 
     optimizer.zero_grad()
-    loss = loss_fn(actual_value, my_value).mean()
+    loss = loss_fn(actual_value, my_value).squeeze()
+    loss = (weights * loss).mean()
 
     loss.backward()
-    #torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
-    optimizer.step()
-
+    # torch.nn.utils.clip_grad.clip_grad_norm_(net.parameters(), 10)
+    # torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
     optimizer.step()
 
     return loss
@@ -62,6 +69,15 @@ def update_target_net(net, target_net, tau):
 
 def get_model_name(suffix):
     return suffix + '_' + datetime.now().strftime("%Y-%m-%d.%H-%M-%S-%f")
+
+
+def normalize_states(states, state_mean_std):
+    if state_mean_std is None:
+        return states
+    return [
+        (np.array(s) - state_mean_std[0]) / state_mean_std[1]
+        for s in states
+    ]
 
 
 def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator = None,
@@ -85,11 +101,17 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     tensorboard_save_root.mkdir(exist_ok=True, parents=True)
     print(tensorboard_save_root.resolve())
     writer = SummaryWriter(tensorboard_save_root)
+
+    # per_step_lr_drop = 0.9 / 150000
+    # scheduler = LambdaLR(training_state.optimizer, lambda step: max(0.1, 1. - step * per_step_lr_drop))
+    scheduler = StepLR(training_state.optimizer, step_size=100000, gamma=0.2)
+
     with env.create_runner(render=False) as runner:
 
         while params.current_episode < params.num_episodes:
 
             states = runner.reset()
+            states = normalize_states(states, training_state.state_mean_std)
 
             ep_len = 0
             done = False
@@ -104,10 +126,14 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
                     actions = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy().tolist()
 
                 next_states, rewards, done, info = runner.step(actions)
+                next_states = normalize_states(next_states, training_state.state_mean_std)
                 rewards_queue.extend(info['reward'])
                 print(params.total_steps, np.mean(rewards_queue))
 
-                for s, r, a, n_s in zip(next_states, info['reward'], actions, next_states):
+                for s, r, a, n_s in zip(states, info['reward'], actions, next_states):
+                    if training_state.reward_mean_std is not None:
+                        r = (r - training_state.reward_mean_std[0]) / training_state.reward_mean_std[1]
+
                     training_state.replay_memory.add(
                         s, a, r, n_s, done
                     )
@@ -138,9 +164,12 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
                         evaluator.evaluate_to_tensorboard(
                             {'model': ModelController(training_state.model.eval(), device)},
                             writer,
-                            params.total_steps
+                            params.total_steps,
+                            training_state.state_mean_std
                         )
                         training_state.model = training_state.model.train()
+
+                    scheduler.step()
 
             writer.flush()
 

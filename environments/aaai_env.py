@@ -118,8 +118,6 @@ class AaaiEnvRunner(SumoEnvRunner):
 
                 states[tls_id] = pressures
 
-        print(states)
-
         return np.asarray(self.dict_states_to_array(states), dtype='float32')
 
     def _simulate_step(self):

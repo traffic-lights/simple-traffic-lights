@@ -13,6 +13,9 @@ tensorboard = "^2.2.2"
 PyQt5 = "^5.15.1"
 psutil = "^5.7.3"
 pyprind = "^2.11.2"
+pika = "^1.1.0"
+aio-pika = "^6.7.1"
+asyncio = "^3.4.3"
 
 [tool.poetry.dev-dependencies]
 
