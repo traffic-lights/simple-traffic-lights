@@ -1,10 +1,10 @@
 from dataclasses import dataclass, asdict
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch import nn
 from torch.optim import Optimizer, Adam
-
+import numpy as np
 from memory.prioritized_memory import Memory
 from models.utils import get_save_dict, load_model_from_dict
 from models.neural_net import SerializableModel
@@ -33,8 +33,8 @@ class TrainingParameters:
     tau: float = 0.0003  # Rate to update target network toward primary network
     target_update_freq: int = 1  # how often to preform a target net update
 
-    prioritized_repay_alpha: float = 0.6    # how much prioritization is being used
-                                            # (0 - no prioritization, 1 - full prioritization)
+    prioritized_repay_alpha: float = 0.6  # how much prioritization is being used
+    # (0 - no prioritization, 1 - full prioritization)
 
     sampler_beta_0: float = 0.4
     sampler_beta_max: float = 1.0
@@ -86,6 +86,8 @@ class TrainingState:
     loss_fn: nn.Module
     replay_memory: ReplayBuffer
     junctions: List[str]
+    reward_mean_std: Tuple[float, float] = None
+    state_mean_std: Tuple[np.array, np.array] = None
 
     def save(self, path):
         my_dict = {
@@ -93,9 +95,11 @@ class TrainingState:
             'target_model': get_save_dict(self.target_model),
             'optimizer': get_optimizer_dict(self.optimizer),
             'loss_fn': self.loss_fn,
-            #'replay_memory': self.replay_memory.get_save_dict(),
+            # 'replay_memory': self.replay_memory.get_save_dict(),
             'training_parameters': asdict(self.training_parameters),
-            'junctions': self.junctions
+            'junctions': self.junctions,
+            'reward_mean_std': self.reward_mean_std,
+            'state_mean_std': self.state_mean_std
         }
         torch.save(my_dict, path)
 
@@ -105,11 +109,11 @@ class TrainingState:
         model = load_model_from_dict(my_dict['model'])
         target_model = load_model_from_dict(my_dict['target_model'])
 
-        #optim = load_optim_from_dict(my_dict['optimizer'], model)
-        #mem = Memory.load_from_dict(my_dict['replay_memory'])
+        # optim = load_optim_from_dict(my_dict['optimizer'], model)
+        # mem = Memory.load_from_dict(my_dict['replay_memory'])
 
-        junctions = None#my_dict['junctions']
-        #junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
+        junctions = None  # my_dict['junctions']
+        # junctions = ['gneJ25', 'gneJ26', 'gneJ27', 'gneJ28']
 
         training_parameters = TrainingParameters(**my_dict['training_parameters'])
 

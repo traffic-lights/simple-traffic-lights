@@ -2,7 +2,7 @@ from pathlib import Path
 
 from evaluation.evaluator import Evaluator
 from models.frap import Frap
-from settings import PROJECT_ROOT
+from settings import PROJECT_ROOT, JSONS_FOLDER
 from tools.phases.two_v_two import get_phase_map
 from traffic_controllers.cyclic_switch_controllers import TimedCyclicSwitchController, RandomSwitchController
 
@@ -34,15 +34,15 @@ def main():
     print(phase_map.keys())
     controllers3 = [VehicleNumberController(phase) for tls_id, phase in phase_map.items()]
 
-    training_state = TrainingState.from_path(
-        Path('saved', 'aaai-multi', 'frap', 'frap_2020-11-30.22-37-20-340261', 'states',
-             'ep_20_frap_2020-11-30.22-37-20-340261.tar'))
-    model1 = training_state.model
-    model1 = model1.eval()
+    # training_state = TrainingState.from_path(
+    #     Path('saved', 'aaai-multi', 'frap', 'frap_2020-11-30.22-37-20-340261', 'states',
+    #          'ep_20_frap_2020-11-30.22-37-20-340261.tar'))
+    # model1 = training_state.model
+    # model1 = model1.eval()
+    #
+    # controller4 = ModelController(model1)
 
-    controller4 = ModelController(model1)
-
-    metrics = evaluator.evaluate_traffic_controllers([controller4])
+    metrics = evaluator.evaluate_traffic_controllers([controllers3, controller2])
 
     for env_n in metrics[0].keys():
         print(env_n)

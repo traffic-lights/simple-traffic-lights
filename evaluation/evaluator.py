@@ -7,12 +7,12 @@ from settings import PROJECT_ROOT
 import numpy as np
 
 
-def evaluate_controller(runner, controllers):
+def evaluate_controller(runner, controllers, state_mean_std=None):
     states = runner.reset()
     ep_len = 0
     done = False
     all_rewards = []
-
+    all_states = []
     if not isinstance(controllers, list):
         controllers = [controllers] * len(runner.junctions)
 
@@ -20,17 +20,22 @@ def evaluate_controller(runner, controllers):
         actions = []
         for i, controller in enumerate(controllers):
             state = states[i]
+            if state_mean_std is not None:
+                state = (np.array(state) - state_mean_std[0]) / state_mean_std[1]
             actions.append(controller(state))
 
         states, rewards, done, info = runner.step(actions)
         all_rewards.extend(info['reward'])
-
+        # all_states.extend(states)
         ep_len += 1
 
     return {
         'throughput': runner.get_throughput(),
         'travel_time': runner.get_travel_time(),
-        'mean_reward': np.mean(all_rewards)
+        'mean_reward': np.mean(all_rewards),
+        # 'std_reward': np.std(all_rewards),
+        # 'mean_state': np.mean(all_states, axis=0),
+        # 'std_state': np.std(all_states, axis=0)
     }
 
 
@@ -48,7 +53,7 @@ class Evaluator:
             for test_case in self.test_cases_list
         }
 
-    def evaluate_traffic_controllers(self, traffic_controllers):
+    def evaluate_traffic_controllers(self, traffic_controllers, state_mean_std=None):
         """
         :param traffic_controllers: list of controllers
         :return: list of metrics for each controller, in the same order as given list of controllers
@@ -66,15 +71,15 @@ class Evaluator:
                         controller = [controller]
                     controller = [c.with_connection(runner.connection) for c in controller]
 
-                    metrics[i_controller][env_name] = evaluate_controller(runner, controller)
+                    metrics[i_controller][env_name] = evaluate_controller(runner, controller, state_mean_std)
 
         return metrics
 
-    def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step):
+    def evaluate_to_tensorboard(self, traffic_controllers_dict, tf_writer, step, state_mean_std=None):
         controller_names = list(traffic_controllers_dict.keys())
         controllers = list(traffic_controllers_dict.values())
 
-        metrics = self.evaluate_traffic_controllers(controllers)
+        metrics = self.evaluate_traffic_controllers(controllers, state_mean_std)
 
         scalars = defaultdict(dict)
 
