@@ -170,7 +170,10 @@ def train_2v2():
 
 def train_4v4():
 
-    env_config_path = Path(JSONS_FOLDER, 'configs', '4v4', 'all_equal.json')
+    envs_config_paths = [Path(JSONS_FOLDER, 'configs', '4v4', 'all_equal.json'),
+                         Path(JSONS_FOLDER, 'configs', '4v4', 'more_horizontally.json'),
+                         Path(JSONS_FOLDER, 'configs', '4v4', 'more_vertically.json')]
+
 
     training_state = get_frap_training_2v2()
     training_state.junctions = ["gneJ1", "gneJ2", "gneJ3", "gneJ4", "gneJ7", "gneJ8", "gneJ9", "gneJ10",
@@ -179,7 +182,7 @@ def train_4v4():
 
     main_train(
         training_state,
-        SumoEnv.from_config_file(env_config_path, 3000),
+        [SumoEnv.from_config_file(env_config_path, 3000) for env_config_path in envs_config_paths],
         evaluator,
         Path('saved', 'aaai-multi', 'frap', '4v4'),
     )

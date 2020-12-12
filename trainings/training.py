@@ -2,12 +2,12 @@ import random
 from collections import deque
 from datetime import datetime
 from pathlib import Path
+from contextlib import ExitStack
 
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import LambdaLR, StepLR
 
-from environments.sumo_env import SumoEnv
 from evaluation.evaluator import Evaluator
 from torch.utils.tensorboard import SummaryWriter
 
@@ -80,9 +80,12 @@ def normalize_states(states, state_mean_std):
     ]
 
 
-def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator = None,
+def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                save_root=Path('saved', 'old_models')):
     params = training_state.training_parameters
+
+    if not isinstance(envs, list):
+        envs = [envs]
 
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     print("training on: {}".format(device))
@@ -106,9 +109,14 @@ def main_train(training_state: TrainingState, env: SumoEnv, evaluator: Evaluator
     # scheduler = LambdaLR(training_state.optimizer, lambda step: max(0.1, 1. - step * per_step_lr_drop))
     scheduler = StepLR(training_state.optimizer, step_size=100000, gamma=0.2)
 
-    with env.create_runner(render=False) as runner:
+    with ExitStack() as stack:
+        runners = [stack.enter_context(env.create_runner(render=False)) for env in envs]
+        runner_it = 0
 
         while params.current_episode < params.num_episodes:
+
+            runner = runners[runner_it]
+            runner_it = (runner_it + 1) % len(envs)
 
             states = runner.reset()
             states = normalize_states(states, training_state.state_mean_std)
