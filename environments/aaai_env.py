@@ -106,32 +106,13 @@ class AaaiEnvRunner(SumoEnvRunner):
         return dct
 
     def _snap_state(self):
+        states = []
+        for i, flag in enumerate(self.ret_state):
+            if flag:
 
-        states = {}
-        for junction in self.junctions:
-            cluster = self.cluster_map.get(junction)
-            if cluster:
-                states[junction] = [0] * (1 + len(cluster["traffic_movements"]))
-            else:
-                states[junction] = [0] * 13
+                tls_id = self.junctions[i]
+                pressures = [max(0, self.curr_phases[i])]  # -1 as action used on restarted env, change it later xd
 
-        clustered_links = set()
-
-        for tls_id, phases in self.previous_actions.items():
-
-            pressures = [phases[0]]
-
-            cluster = self.clustered_juncions.get(tls_id)
-
-            if cluster:
-                if cluster not in clustered_links:
-                    clustered_links.add(cluster)
-                    for incoming, outgoing in self.cluster_map[cluster]["traffic_movements"]:
-                        pressures.append(self.connection.lane.getLastStepVehicleNumber(incoming) -
-                                         self.connection.lane.getLastStepVehicleNumber(outgoing))
-
-                    states[cluster] = pressures
-            else:
                 for entry in self.connection.trafficlight.getControlledLinks(tls_id):
                     if entry:
                         entry_tuple = entry[0]
@@ -141,18 +122,13 @@ class AaaiEnvRunner(SumoEnvRunner):
                             ) - self.connection.lane.getLastStepVehicleNumber(entry_tuple[1])
                             pressures.append(my_pressure)
 
-                states[tls_id] = pressures
+                states.append(pressures)
 
-        ret_arr = self.dict_states_to_array(states)
-        ret_val = []
-        for ret, arr in zip(self.ret_state, ret_arr):
-            if ret:
-                ret_val.append(np.asarray(arr, dtype='float32'))
             else:
-                ret_val.append(None)
+                states.append(None)
 
         self.ret_state = [False] * len(self.junctions)
-        return ret_val
+        return states
 
     def _simulate_step(self):
 
@@ -198,21 +174,27 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         return arrived_cars, accumulated_travel_time
 
-    # def _print_event_q(self):
-    #     s = ''
-    #     for event in self.events:
-    #         if event.event_type == EventType.ASK_FOR_ACTION:
-    #             s += "ask "
-    #         elif event.event_type == EventType.SWITCH_TO_GREEN:
-    #             s += "to_green "
-    #         elif event.event_type == EventType.SWITCH_TO_RED:
-    #             s += "to_red "
-    #
-    #         s += str(event.simulation_time) + " " + str(event.jun_intern_id) + "; "
-    #
-    #     print(s)
+    def _print_event_q(self):
+        s = ''
+        for event in self.events:
+            if event.event_type == EventType.ASK_FOR_ACTION:
+                s += "ask "
+            elif event.event_type == EventType.SWITCH_TO_GREEN:
+                s += "to_green "
+            elif event.event_type == EventType.SWITCH_TO_RED:
+                s += "to_red "
+
+            s += str(event.simulation_time) + " " + str(event.jun_intern_id) + "; "
+
+        print(s)
 
     def _take_action(self, action):
+        print("actions")
+        print(action)
+        print(self.curr_phases)
+
+        print("1")
+        self._print_event_q()
 
         for i, act in enumerate(action):
             if act is not None:
@@ -227,6 +209,9 @@ class AaaiEnvRunner(SumoEnvRunner):
                         Event(i, EventType.SWITCH_TO_RED, self.connection.simulation.getTime() + self.yellow_dur))
 
         self.events = sorted(self.events, key=lambda evt: evt.simulation_time)
+
+        print("2")
+        self._print_event_q()
 
         arrived_cars = set()
 
@@ -253,6 +238,7 @@ class AaaiEnvRunner(SumoEnvRunner):
         for i in range(event_it):
             if self.events[i].event_type == EventType.ASK_FOR_ACTION:
                 self.ret_state[self.events[i].jun_intern_id] = True
+
             elif self.events[i].event_type == EventType.SWITCH_TO_RED:
                 self.connection.trafficlight.setPhase(self.junctions[self.events[i].jun_intern_id],
                                                       self.connection.trafficlight.getPhase(
@@ -260,7 +246,8 @@ class AaaiEnvRunner(SumoEnvRunner):
                 self.events.append(
                     Event(self.events[i].jun_intern_id, EventType.SWITCH_TO_GREEN,
                           self.connection.simulation.getTime() + self.red_dur))
-            else:
+
+            else:  # SWITCH_TO_GREEN
                 self.connection.trafficlight.setPhase(self.junctions[self.events[i].jun_intern_id],
                                                           3 * self.curr_phases[self.events[i].jun_intern_id])
                 self.events.append(
@@ -268,6 +255,9 @@ class AaaiEnvRunner(SumoEnvRunner):
                           self.connection.simulation.getTime() + self.green_dur))
 
         self.events = self.events[event_it:]
+
+        print("3")
+        self._print_event_q()
 
         for tls_id in self.junctions:
 
