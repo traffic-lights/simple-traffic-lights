@@ -1,0 +1,16 @@
+{
+  "test_cases": [
+    {
+      "name": "all_equal",
+      "config": "jsons/configs/simple/simple_random.json"
+    },
+    {
+      "name": "more_vertically",
+      "config": "jsons/configs/simple/simple_random_more_vertically.json"
+    },
+    {
+      "name": "more_horizontally",
+      "config": "jsons/configs/simple/simple_random_more_horizontally.json"
+    }
+  ]
+}

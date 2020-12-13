@@ -98,7 +98,7 @@ class SumoEnv:
             vehicle_generator_config=config_dict['vehicle_generator'],
             max_steps=max_steps,
             env_name=env_name,
-            **env_config['additional_params'] if 'additional_params' else {}
+            **env_config['additional_params'] if 'additional_params' in env_config else {}
         )
 
     def create_runner(self, render=False) -> SumoEnvRunner:

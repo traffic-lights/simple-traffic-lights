@@ -49,19 +49,60 @@ def get_new_training():
     )
 
 
+def get_simple_training():
+    traffic_movements = 12
+    traffic_phases = 8
+
+    model_name = get_model_name('simple')
+    training_param = TrainingParameters(
+        model_name,
+        pre_train_steps=1500,
+        tau=0.00005,
+        target_update_freq=1,
+        lr=0.0006,
+        save_freq=1,
+        test_freq=300,
+        memory_size=200000,
+        batch_size=512,
+        annealing_steps=70000,
+        disc_factor=0.95
+    )
+
+    memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
+
+    net = SimpleLinear(traffic_movements + 1, traffic_phases)
+    target_net = SimpleLinear(traffic_movements + 1, traffic_phases)
+    target_net.eval()
+
+    target_net.load_state_dict(net.state_dict())
+    optimizer = Adam(net.parameters(), lr=training_param.lr)
+
+    loss_fn = MSELoss()
+    return TrainingState(
+        training_param,
+        net,
+        target_net,
+        optimizer,
+        loss_fn,
+        memory,
+        ['gneJ18']
+    )
+
+
 def get_frap_training():
     model_name = get_model_name('frap')
     training_param = TrainingParameters(
         model_name,
         pre_train_steps=1500,
-        tau=1.0,
-        target_update_freq=100,
-        lr=0.0003,
+        tau=0.00005,
+        target_update_freq=1,
+        lr=0.0006,
         save_freq=1,
         test_freq=300,
         memory_size=200000,
         batch_size=512,
-        annealing_steps=8000
+        annealing_steps=70000,
+        disc_factor=0.95
     )
 
     memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
@@ -168,16 +209,15 @@ def train_2v2():
         Path('saved', 'aaai-multi', 'frap'),
     )
 
-def train_4v4():
 
+def train_4v4():
     envs_config_paths = [Path(JSONS_FOLDER, 'configs', '4v4', 'all_equal.json'),
                          Path(JSONS_FOLDER, 'configs', '4v4', 'more_horizontally.json'),
                          Path(JSONS_FOLDER, 'configs', '4v4', 'more_vertically.json')]
 
-
     training_state = get_frap_training_2v2()
     training_state.junctions = ["gneJ1", "gneJ2", "gneJ3", "gneJ4", "gneJ7", "gneJ8", "gneJ9", "gneJ10",
-        "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"]
+                                "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"]
     evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', '4v4_eq_vert_hori.json'))
 
     main_train(
@@ -185,6 +225,17 @@ def train_4v4():
         [SumoEnv.from_config_file(env_config_path, 3000) for env_config_path in envs_config_paths],
         evaluator,
         Path('saved', 'aaai-multi', 'frap', '4v4'),
+    )
+
+
+def train_simple_1v1():
+    env_config_path = Path(JSONS_FOLDER, 'configs', 'simple', 'simple_random.json')
+    evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', 'simple_1v1_test.json'))
+    main_train(
+        get_simple_training(),
+        SumoEnv.from_config_file(env_config_path),
+        evaluator,
+        Path('saved', 'simple-1v1', 'simple'),
     )
 
 

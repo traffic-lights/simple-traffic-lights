@@ -16,7 +16,7 @@ from trainings.training_parameters import TrainingState
 
 def main():
     #evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
-    evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/4v4_eq_vert_hori.json")
 
     osm_phase_map = {
         0: ["gneE8_0", "gneE8_1", "166869096#1_0", "166869096#1_1",
@@ -34,15 +34,15 @@ def main():
     print(phase_map.keys())
     controllers3 = [VehicleNumberController(phase) for tls_id, phase in phase_map.items()]
 
-    # training_state = TrainingState.from_path(
-    #     Path('saved', 'aaai-multi', 'frap', 'frap_2020-11-30.22-37-20-340261', 'states',
-    #          'ep_20_frap_2020-11-30.22-37-20-340261.tar'))
-    # model1 = training_state.model
-    # model1 = model1.eval()
-    #
-    # controller4 = ModelController(model1)
+    training_state = TrainingState.from_path(
+        Path('saved', 'aaai-multi', 'frap', 'frap_2020-12-13.12-43-58-417983', 'states',
+             'ep_10_frap_2020-12-13.12-43-58-417983.tar'))
+    model1 = training_state.model
+    model1 = model1.eval()
 
-    metrics = evaluator.evaluate_traffic_controllers([controllers3, controller2])
+    controller4 = ModelController(model1)
+
+    metrics = evaluator.evaluate_traffic_controllers([controller4])
 
     for env_n in metrics[0].keys():
         print(env_n)

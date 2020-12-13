@@ -105,7 +105,7 @@ class TrainingState:
 
     @classmethod
     def from_path(cls, path):
-        my_dict = torch.load(path, map_location='cpu')
+        my_dict = torch.load(str(path), map_location='cpu')
         model = load_model_from_dict(my_dict['model'])
         target_model = load_model_from_dict(my_dict['target_model'])
 
