@@ -1,3 +1,6 @@
+from enum import Enum
+from dataclasses import dataclass
+
 import numpy as np
 from gym import spaces
 
@@ -7,6 +10,16 @@ TRAFFIC_MOVEMENTS = 12
 TRAFFICLIGHTS_PHASES = 8
 LIGHT_DURATION = 10
 
+class EventType(Enum):
+    SWITCH_TO_GREEN = 0
+    SWITCH_TO_RED = 1
+    ASK_FOR_ACTION = 2
+
+@dataclass
+class Event:
+    jun_intern_id: int
+    event_type: EventType
+    simulation_time: int
 
 class AaaiEnvRunner(SumoEnvRunner):
     def __init__(self,
@@ -48,6 +61,18 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         self.travel_time = 0
         self.throughput = 0
+
+        self.green_dur = self.light_duration
+        self.connection.trafficlight.setPhase(self.junctions[0], 1)
+        self.yellow_dur = self.connection.trafficlight.getPhaseDuration(self.junctions[0])
+        self.connection.trafficlight.setPhase(self.junctions[0], 2)
+        self.red_dur = self.connection.trafficlight.getPhaseDuration(self.junctions[0])
+        self.connection.trafficlight.setPhase(self.junctions[0], 0)
+
+        self.curr_phases = [-1] * len(junctions)
+
+        self.events = []
+        self.ret_state = [True] * len(junctions)
 
         self.restarted = True
 
@@ -118,9 +143,19 @@ class AaaiEnvRunner(SumoEnvRunner):
 
                 states[tls_id] = pressures
 
-        return np.asarray(self.dict_states_to_array(states), dtype='float32')
+        ret_arr = self.dict_states_to_array(states)
+        ret_val = []
+        for ret, arr in zip(self.ret_state, ret_arr):
+            if ret:
+                ret_val.append(np.asarray(arr, dtype='float32'))
+            else:
+                ret_val.append(None)
+
+        self.ret_state = [False] * len(self.junctions)
+        return ret_val
 
     def _simulate_step(self):
+
         arrived_cars = set()
 
         accumulated_travel_time = 0
@@ -163,26 +198,35 @@ class AaaiEnvRunner(SumoEnvRunner):
 
         return arrived_cars, accumulated_travel_time
 
+    # def _print_event_q(self):
+    #     s = ''
+    #     for event in self.events:
+    #         if event.event_type == EventType.ASK_FOR_ACTION:
+    #             s += "ask "
+    #         elif event.event_type == EventType.SWITCH_TO_GREEN:
+    #             s += "to_green "
+    #         elif event.event_type == EventType.SWITCH_TO_RED:
+    #             s += "to_red "
+    #
+    #         s += str(event.simulation_time) + " " + str(event.jun_intern_id) + "; "
+    #
+    #     print(s)
+
     def _take_action(self, action):
-        actions = list(zip(self.junctions, action))
 
-        def yellow(act):
-            return 3 * act + 1
+        for i, act in enumerate(action):
+            if act is not None:
+                if self.curr_phases[i] == act:
+                    self.events.append(Event(i, EventType.ASK_FOR_ACTION,
+                                             self.connection.simulation.getTime() + self.green_dur))
+                else:
+                    self.curr_phases[i] = act
+                    self.connection.trafficlight.setPhase(self.junctions[i],
+                                                          self.connection.trafficlight.getPhase(self.junctions[i]) + 1)
+                    self.events.append(
+                        Event(i, EventType.SWITCH_TO_RED, self.connection.simulation.getTime() + self.yellow_dur))
 
-        def red(act):
-            return 3 * act + 2
-
-        processed_actions = {}
-        for jun, act in actions:
-            cluster = self.cluster_map.get(jun)
-            if cluster:
-                for tls_id, phases in cluster["tls_to_phases"].items():
-                    processed_actions[tls_id] = [act] + phases[act]
-            else:
-                processed_actions[jun] = (act, 3 * act, yellow(act), red(act))
-
-        actions = processed_actions
-
+        self.events = sorted(self.events, key=lambda evt: evt.simulation_time)
 
         arrived_cars = set()
 
@@ -191,40 +235,41 @@ class AaaiEnvRunner(SumoEnvRunner):
         rewards = {}
         pressures = {}
 
-        # turn yellow and red light if different action
+        TIME_EPS = 0.1
+        next_break = self.events[0].simulation_time
+        event_it = 0
 
-        if not self.restarted:
+        for event in self.events:
+            if event.simulation_time - next_break < TIME_EPS:
+                next_break = event.simulation_time
+                event_it += 1
 
-            phase_changes = {}
-
-            for tls_id, phases in actions.items():
-                if phases != self.previous_actions[tls_id]:
-                    phase_changes[tls_id] = self.previous_actions[tls_id]
-
-            if phase_changes:
-                # yellows
-                my_cars, my_time = self._proceed_actions(phase_changes, 2)
-                arrived_cars |= my_cars
-                accumulated_travel_time += my_time
-                # reds
-                my_cars, my_time = self._proceed_actions(phase_changes, 3)
-                arrived_cars |= my_cars
-                accumulated_travel_time += my_time
-
-        self.previous_actions = actions
-
-        for tls_id, phases in actions.items():
-            self.connection.trafficlight.setPhase(tls_id, phases[1])
-            self.connection.trafficlight.setPhaseDuration(tls_id, self.light_duration)
-
-        start_time = self.connection.simulation.getTime()
         done = False
-        while not done and self.connection.simulation.getTime() - start_time < self.light_duration - 0.1:
+        while not done and next_break - self.connection.simulation.getTime() > TIME_EPS:
             done, my_cars, my_time = self._simulate_step()
             arrived_cars |= my_cars
             accumulated_travel_time += my_time
 
-        for tls_id in actions.keys():
+        for i in range(event_it):
+            if self.events[i].event_type == EventType.ASK_FOR_ACTION:
+                self.ret_state[self.events[i].jun_intern_id] = True
+            elif self.events[i].event_type == EventType.SWITCH_TO_RED:
+                self.connection.trafficlight.setPhase(self.junctions[self.events[i].jun_intern_id],
+                                                      self.connection.trafficlight.getPhase(
+                                                          self.junctions[self.events[i].jun_intern_id]) + 1)
+                self.events.append(
+                    Event(self.events[i].jun_intern_id, EventType.SWITCH_TO_GREEN,
+                          self.connection.simulation.getTime() + self.red_dur))
+            else:
+                self.connection.trafficlight.setPhase(self.junctions[self.events[i].jun_intern_id],
+                                                          3 * self.curr_phases[self.events[i].jun_intern_id])
+                self.events.append(
+                    Event(self.events[i].jun_intern_id, EventType.ASK_FOR_ACTION,
+                          self.connection.simulation.getTime() + self.green_dur))
+
+        self.events = self.events[event_it:]
+
+        for tls_id in self.junctions:
 
             incomings = set()
             outgoings = set()
@@ -272,6 +317,12 @@ class AaaiEnvRunner(SumoEnvRunner):
             else:
                 self.previous_actions[junction] = (0, 1, 2, 3)
         self.traveling_cars = {}
+
+        self.curr_phases = [-1] * len(self.junctions)
+
+        self.events = []
+        self.ret_state = [True] * len(self.junctions)
+
         self.restarted = True
 
     def get_throughput(self):

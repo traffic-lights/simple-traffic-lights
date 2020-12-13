@@ -118,8 +118,13 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
             runner = runners[runner_it]
             runner_it = (runner_it + 1) % len(envs)
 
-            states = runner.reset()
-            states = normalize_states(states, training_state.state_mean_std)
+            not_none_prev_states = runner.reset()
+            prev_states = not_none_prev_states.copy()
+
+            not_none_prev_states = normalize_states(not_none_prev_states, training_state.state_mean_std)
+            prev_states = normalize_states(prev_states, training_state.state_mean_std)
+
+            prev_actions = [None] * len(training_state.junctions)
 
             ep_len = 0
             done = False
@@ -128,25 +133,42 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                 params.total_steps += 1
 
                 if random.random() < params.current_eps or params.total_steps < params.pre_train_steps:
-                    actions = runner.action_space.sample()
+                    actions = runner.action_space.sample().tolist()
+                    for i, state in enumerate(prev_states):
+                        if state is None:
+                            actions[i] = None
                 else:
-                    tensor_state = torch.tensor(states, dtype=torch.float32, device=device)
-                    actions = training_state.model(tensor_state).max(1)[1].cpu().detach().numpy().tolist()
+                    actions = []
+                    for state in prev_states:
+                        if state is None:
+                            actions.append(None)
+                        else:
+                            tensor_state = torch.tensor([state], dtype=torch.float32, device=device)
+                            actions.extend(training_state.model(tensor_state).max(1)[1].cpu().detach().numpy().tolist())
 
                 next_states, rewards, done, info = runner.step(actions)
                 next_states = normalize_states(next_states, training_state.state_mean_std)
                 rewards_queue.extend(info['reward'])
                 print(params.total_steps, np.mean(rewards_queue))
 
-                for s, r, a, n_s in zip(states, info['reward'], actions, next_states):
-                    if training_state.reward_mean_std is not None:
-                        r = (r - training_state.reward_mean_std[0]) / training_state.reward_mean_std[1]
+                for s, r, a, n_s in zip(not_none_prev_states, info['reward'], prev_actions, next_states):
+                    if n_s is not None:
+                        if training_state.reward_mean_std is not None:
+                            r = (r - training_state.reward_mean_std[0]) / training_state.reward_mean_std[1]
 
-                    training_state.replay_memory.add(
-                        s, a, r, n_s, done
-                    )
+                        training_state.replay_memory.add(
+                            s, a, r, n_s, done
+                        )
 
-                states = next_states
+                prev_states = next_states
+
+                for i, next_state in enumerate(next_states):
+                    if next_state is not None:
+                        not_none_prev_states[i] = next_state
+
+                for i, action in enumerate(actions):
+                    if action is not None:
+                        prev_actions[i] = action
 
                 if params.total_steps > params.pre_train_steps:
                     if params.current_eps > params.end_e:

@@ -12,9 +12,10 @@ def evaluate_controller(runner, controllers, state_mean_std=None):
     ep_len = 0
     done = False
     all_rewards = []
-    all_states = []
     if not isinstance(controllers, list):
         controllers = [controllers] * len(runner.junctions)
+    elif len(controllers) == 1:
+        controllers = controllers * len(runner.junctions)
 
     while not done:
         actions = []
@@ -22,11 +23,14 @@ def evaluate_controller(runner, controllers, state_mean_std=None):
             state = states[i]
             if state_mean_std is not None:
                 state = (np.array(state) - state_mean_std[0]) / state_mean_std[1]
-            actions.append(controller(state))
+
+            if state is not None:
+                actions.append(controller(state))
+            else:
+                actions.append(None)
 
         states, rewards, done, info = runner.step(actions)
         all_rewards.extend(info['reward'])
-        # all_states.extend(states)
         ep_len += 1
 
     return {
@@ -65,7 +69,7 @@ class Evaluator:
         metrics = [{} for _ in traffic_controllers]
 
         for env_name, env in self.environments.items():
-            with env.create_runner(render=False) as runner:
+            with env.create_runner(render=True) as runner:
                 for i_controller, controller in enumerate(traffic_controllers):
                     if not isinstance(controller, list):
                         controller = [controller]
