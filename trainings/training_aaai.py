@@ -94,9 +94,9 @@ def get_frap_training_2v2():
         tau=0.00005,
         target_update_freq=1,
         lr=0.0006,
-        save_freq=1,
-        test_freq=300,
-        memory_size=200000,
+        save_freq=1500,
+        test_freq=1500,
+        memory_size=400000,
         batch_size=512,
         annealing_steps=70000,
         disc_factor=0.95
@@ -168,16 +168,15 @@ def train_2v2():
         Path('saved', 'aaai-multi', 'frap'),
     )
 
-def train_4v4():
 
+def train_4v4():
     envs_config_paths = [Path(JSONS_FOLDER, 'configs', '4v4', 'all_equal.json'),
                          Path(JSONS_FOLDER, 'configs', '4v4', 'more_horizontally.json'),
                          Path(JSONS_FOLDER, 'configs', '4v4', 'more_vertically.json')]
 
-
     training_state = get_frap_training_2v2()
     training_state.junctions = ["gneJ1", "gneJ2", "gneJ3", "gneJ4", "gneJ7", "gneJ8", "gneJ9", "gneJ10",
-        "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"]
+                                "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"]
     evaluator = Evaluator.from_file(Path(JSONS_FOLDER, 'evaluators', '4v4_eq_vert_hori.json'))
 
     main_train(

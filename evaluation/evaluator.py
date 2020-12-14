@@ -57,7 +57,7 @@ class Evaluator:
             for test_case in self.test_cases_list
         }
 
-    def evaluate_traffic_controllers(self, traffic_controllers, state_mean_std=None):
+    def evaluate_traffic_controllers(self, traffic_controllers, render=False, state_mean_std=None):
         """
         :param traffic_controllers: list of controllers
         :return: list of metrics for each controller, in the same order as given list of controllers
@@ -69,7 +69,7 @@ class Evaluator:
         metrics = [{} for _ in traffic_controllers]
 
         for env_name, env in self.environments.items():
-            with env.create_runner(render=True) as runner:
+            with env.create_runner(render=render) as runner:
                 for i_controller, controller in enumerate(traffic_controllers):
                     if not isinstance(controller, list):
                         controller = [controller]

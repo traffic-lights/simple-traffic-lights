@@ -18,48 +18,50 @@ from trainings.training_parameters import TrainingParameters, TrainingState
 def train_all_batches(memory, beta,
                       prioritized_replay_eps, net,
                       target_net, optimizer, loss_fn,
-                      batch_size, disc_factor, device=torch.device('cpu')):
-    experience = memory.sample(batch_size, beta)
-    states, actions, rewards, next_states, dones, weights, batch_idxs = experience
+                      batch_size, disc_factor, device=torch.device('cpu'), num_batches=1):
+    losses = []
+    for i_b in range(num_batches):
+        experience = memory.sample(batch_size, beta)
+        states, actions, rewards, next_states, dones, weights, batch_idxs = experience
 
-    states = torch.tensor(states, dtype=torch.float32, device=device)
-    actions = torch.tensor(actions, dtype=torch.long, device=device)
-    rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
-    next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
-    dones = torch.tensor(dones, dtype=torch.bool, device=device)
-    weights = torch.tensor(weights, dtype=torch.float32, device=device)
+        states = torch.tensor(states, dtype=torch.float32, device=device)
+        actions = torch.tensor(actions, dtype=torch.long, device=device)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+        next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
+        dones = torch.tensor(dones, dtype=torch.bool, device=device)
+        weights = torch.tensor(weights, dtype=torch.float32, device=device)
 
-    net = net.train()
+        net = net.train()
 
-    # for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
-    with torch.no_grad():
-        next_value = torch.max(target_net(next_states), dim=1)[0]
+        # for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
+        with torch.no_grad():
+            next_value = torch.max(target_net(next_states), dim=1)[0]
 
-    actual_value = torch.where(
-        dones,
-        rewards,
-        rewards + disc_factor * next_value).unsqueeze(-1)
+        actual_value = torch.where(
+            dones,
+            rewards,
+            rewards + disc_factor * next_value).unsqueeze(-1)
 
-    my_value = net(states).gather(1, actions.unsqueeze(-1))
+        my_value = net(states).gather(1, actions.unsqueeze(-1))
 
-    errors = torch.abs(actual_value - my_value) \
-        .cpu() \
-        .detach() \
-        .numpy()
+        errors = torch.abs(actual_value - my_value) \
+            .cpu() \
+            .detach() \
+            .numpy()
 
-    new_priorities = np.abs(errors) + prioritized_replay_eps
-    memory.update_priorities(batch_idxs, new_priorities)
+        new_priorities = np.abs(errors) + prioritized_replay_eps
+        memory.update_priorities(batch_idxs, new_priorities)
 
-    optimizer.zero_grad()
-    loss = loss_fn(actual_value, my_value).squeeze()
-    loss = (weights * loss).mean()
+        optimizer.zero_grad()
+        loss = loss_fn(actual_value, my_value).squeeze()
+        loss = (weights * loss).mean()
+        losses.append(loss)
+        loss.backward()
+        # torch.nn.utils.clip_grad.clip_grad_norm_(net.parameters(), 10)
+        # torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
+        optimizer.step()
 
-    loss.backward()
-    # torch.nn.utils.clip_grad.clip_grad_norm_(net.parameters(), 10)
-    # torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
-    optimizer.step()
-
-    return loss
+    return np.mean(losses)
 
 
 def update_target_net(net, target_net, tau):
@@ -184,7 +186,8 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                             params.prioritized_replay_eps,
                             training_state.model, training_state.target_model,
                             training_state.optimizer,
-                            training_state.loss_fn, params.batch_size, params.disc_factor, device=device)
+                            training_state.loss_fn, params.batch_size, params.disc_factor, device=device,
+                            num_batches=10)
                         writer.add_scalar('Train/Loss', mean_loss, params.total_steps)
 
                     if params.total_steps % params.target_update_freq == 0:
@@ -201,15 +204,16 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
 
                     scheduler.step()
 
+                    if params.total_steps % params.save_freq == 0:
+                        training_state.save(
+                            Path(state_save_root, 'ep_{}_{}.tar'.format(params.total_steps, params.model_name))
+                        )
+
             writer.flush()
 
             params.current_episode += 1
 
-            if params.current_episode % params.save_freq == 0:
-                training_state.save(
-                    Path(state_save_root, 'ep_{}_{}.tar'.format(params.current_episode, params.model_name))
-                )
 
         training_state.save(
-            Path(state_save_root, 'final_{}.tar'.format(params.current_episode, params.model_name))
+            Path(state_save_root, 'final_{}.tar'.format(params.model_name))
         )

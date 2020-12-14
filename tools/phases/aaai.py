@@ -11,5 +11,5 @@ aaai_lanes_names = [
 ]
 
 
-def get_phase_map():
+def get_phase_map_1v1():
     return {'gneJ18': _get_phase_map(basic_phases, aaai_lanes_names)}
