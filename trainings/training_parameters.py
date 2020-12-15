@@ -50,11 +50,13 @@ class TrainingParameters:
     save_freq: int = 1  # how often save (current_episode % save_freq == 0)
 
     test_freq: int = 50
+    beta_annealing_steps:int = None
 
     def __post_init__(self):
+        if self.beta_annealing_steps is None:
+            self.beta_annealing_steps = self.annealing_steps
         self.step_drop = (self.start_e - self.end_e) / self.annealing_steps
-        self.beta_inc = (self.sampler_beta_max - self.sampler_beta_0) / self.annealing_steps
-
+        self.beta_inc = (self.sampler_beta_max - self.sampler_beta_0) / self.beta_annealing_steps
 
 def get_optimizer_dict(optimizer):
     return {

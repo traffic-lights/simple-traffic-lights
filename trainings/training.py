@@ -19,49 +19,46 @@ def train_all_batches(memory, beta,
                       prioritized_replay_eps, net,
                       target_net, optimizer, loss_fn,
                       batch_size, disc_factor, device=torch.device('cpu'), num_batches=1):
-    losses = []
-    for i_b in range(num_batches):
-        experience = memory.sample(batch_size, beta)
-        states, actions, rewards, next_states, dones, weights, batch_idxs = experience
+    experience = memory.sample(batch_size, beta)
+    states, actions, rewards, next_states, dones, weights, batch_idxs = experience
 
-        states = torch.tensor(states, dtype=torch.float32, device=device)
-        actions = torch.tensor(actions, dtype=torch.long, device=device)
-        rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
-        next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
-        dones = torch.tensor(dones, dtype=torch.bool, device=device)
-        weights = torch.tensor(weights, dtype=torch.float32, device=device)
+    states = torch.tensor(states, dtype=torch.float32, device=device)
+    actions = torch.tensor(actions, dtype=torch.long, device=device)
+    rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+    next_states = torch.tensor(next_states, dtype=torch.float32, device=device)
+    dones = torch.tensor(dones, dtype=torch.bool, device=device)
+    weights = torch.tensor(weights, dtype=torch.float32, device=device)
 
-        net = net.train()
+    net = net.train()
 
-        # for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
-        with torch.no_grad():
-            next_value = torch.max(target_net(next_states), dim=1)[0]
+    # for i_batch, batch in enumerate(memory.batch_sampler(batch_size, device=device)):
+    with torch.no_grad():
+        next_value = torch.max(target_net(next_states), dim=1)[0]
 
-        actual_value = torch.where(
-            dones,
-            rewards,
-            rewards + disc_factor * next_value).unsqueeze(-1)
+    actual_value = torch.where(
+        dones,
+        rewards,
+        rewards + disc_factor * next_value).unsqueeze(-1)
 
-        my_value = net(states).gather(1, actions.unsqueeze(-1))
+    my_value = net(states).gather(1, actions.unsqueeze(-1))
 
-        errors = torch.abs(actual_value - my_value) \
-            .cpu() \
-            .detach() \
-            .numpy()
+    errors = torch.abs(actual_value - my_value) \
+        .cpu() \
+        .detach() \
+        .numpy()
 
-        new_priorities = np.abs(errors) + prioritized_replay_eps
-        memory.update_priorities(batch_idxs, new_priorities)
+    new_priorities = np.abs(errors) + prioritized_replay_eps
+    memory.update_priorities(batch_idxs, new_priorities)
 
-        optimizer.zero_grad()
-        loss = loss_fn(actual_value, my_value).squeeze()
-        loss = (weights * loss).mean()
-        losses.append(loss)
-        loss.backward()
-        # torch.nn.utils.clip_grad.clip_grad_norm_(net.parameters(), 10)
-        # torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
-        optimizer.step()
+    optimizer.zero_grad()
+    loss = loss_fn(actual_value, my_value).squeeze()
+    loss = (weights * loss).mean()
 
-    return np.mean(losses)
+    loss.backward()
+    # torch.nn.utils.clip_grad.clip_grad_norm_(net.parameters(), 10)
+    # torch.nn.utils.clip_grad_norm_(net.parameters(), 2.)
+    optimizer.step()
+    return loss.cpu().item()
 
 
 def update_target_net(net, target_net, tau):
@@ -109,7 +106,7 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
 
     # per_step_lr_drop = 0.9 / 150000
     # scheduler = LambdaLR(training_state.optimizer, lambda step: max(0.1, 1. - step * per_step_lr_drop))
-    scheduler = StepLR(training_state.optimizer, step_size=100000, gamma=0.2)
+    scheduler = StepLR(training_state.optimizer, step_size=250000, gamma=0.2)
 
     with ExitStack() as stack:
         runners = [stack.enter_context(env.create_runner(render=False)) for env in envs]
@@ -176,8 +173,8 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                     if params.current_eps > params.end_e:
                         params.current_eps -= params.step_drop
 
-                    if params.sampler_current_beta > params.sampler_beta_max:
-                        params.sampler_current_beta += params.sampler_beta_max
+                    params.sampler_current_beta += params.beta_inc
+                    params.sampler_current_beta = min(params.sampler_current_beta, params.sampler_beta_max)
 
                     if params.total_steps % params.training_freq == 0:
                         mean_loss = train_all_batches(
@@ -186,14 +183,15 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                             params.prioritized_replay_eps,
                             training_state.model, training_state.target_model,
                             training_state.optimizer,
-                            training_state.loss_fn, params.batch_size, params.disc_factor, device=device,
-                            num_batches=10)
+                            training_state.loss_fn, params.batch_size, params.disc_factor, device=device)
                         writer.add_scalar('Train/Loss', mean_loss, params.total_steps)
 
                     if params.total_steps % params.target_update_freq == 0:
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
                     if evaluator is not None and params.total_steps % params.test_freq == 0:
+                        if params.total_steps < 15000 and params.total_steps % (params.test_freq*2) != 0:
+                            continue
                         evaluator.evaluate_to_tensorboard(
                             {'model': ModelController(training_state.model.eval(), device)},
                             writer,
@@ -212,7 +210,6 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
             writer.flush()
 
             params.current_episode += 1
-
 
         training_state.save(
             Path(state_save_root, 'final_{}.tar'.format(params.model_name))
