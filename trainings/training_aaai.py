@@ -53,14 +53,14 @@ def get_frap_training():
     model_name = get_model_name('frap')
     training_param = TrainingParameters(
         model_name,
-        pre_train_steps=1500,
+        pre_train_steps=50,  # 1500,
         tau=1.0,
         target_update_freq=100,
         lr=0.0003,
         save_freq=1,
         test_freq=300,
         memory_size=200000,
-        batch_size=512,
+        batch_size=30,  # 512,
         annealing_steps=8000
     )
 
@@ -181,9 +181,9 @@ def get_frap_training_4v4():
         test_freq=1500,
         memory_size=400000,
         batch_size=512,
-        annealing_steps=40000,
+        annealing_steps=50000,
         disc_factor=0.95,
-        beta_annealing_steps=100000
+        beta_annealing_steps=200000
     )
 
     memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)
@@ -246,4 +246,4 @@ def train_4v4():
 
 
 if __name__ == '__main__':
-    train_4v4()
+    train_aaai()

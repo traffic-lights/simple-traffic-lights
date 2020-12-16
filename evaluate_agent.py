@@ -90,7 +90,7 @@ def main():
     # metrics = evaluator.evaluate_traffic_controllers(
     #     [controller_rand, controllers_4v4_vehicle, controllers_4v4_pressure], render=False)
 
-    metrics = evaluator.evaluate_traffic_controllers([model_2v2_controller], render=False)
+    metrics = evaluator.evaluate_traffic_controllers([model_2v2_controller], render=True)
 
     for env_n in metrics[0].keys():
         print(env_n)

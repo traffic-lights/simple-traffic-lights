@@ -190,9 +190,9 @@ def main_train(training_state: TrainingState, envs, evaluator: Evaluator = None,
                         update_target_net(training_state.model, training_state.target_model, params.tau)
 
                     if evaluator is not None and params.total_steps % params.test_freq == 0:
-                        if params.total_steps < 15000 and params.total_steps % (params.test_freq*2) != 0:
-                            continue
-                        evaluator.evaluate_to_tensorboard(
+                        # if params.total_steps < 15000 and params.total_steps % (params.test_freq*2) != 0:
+                        #     continue
+                        evaluator.evaluate_to_tensorboard_async(
                             {'model': ModelController(training_state.model.eval(), device)},
                             writer,
                             params.total_steps,
