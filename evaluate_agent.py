@@ -50,14 +50,14 @@ def main():
 
     model_1v1_training_state = TrainingState.from_path(
         str(Path(PROJECT_ROOT, 'saved', 'aaai-random', 'frap', 'frap_2020-11-12.23-17-52-665056', 'states',
-             'ep_9_frap_2020-11-12.23-17-52-665056.tar'))
+                 'ep_9_frap_2020-11-12.23-17-52-665056.tar'))
     )
     model_1v1 = model_1v1_training_state.model
     model_1v1_controller = ModelController(model_1v1.eval())
 
     model_2v2_training_state = TrainingState.from_path(
         str(Path(PROJECT_ROOT, 'saved', 'aaai-multi', 'frap', 'frap_2020-12-13.12-43-58-417983', 'states',
-             'ep_181_frap_2020-12-13.12-43-58-417983.tar'))
+                 'ep_181_frap_2020-12-13.12-43-58-417983.tar'))
     )
     model_2v2 = model_2v2_training_state.model
     model_2v2_controller = ModelController(model_2v2.eval())
@@ -87,12 +87,21 @@ def main():
     controllers_4v4_pressure = [VehicleNumberPressureController(tls_id, phase_map_4v4[tls_id]) for tls_id in
                                 phase_map_4v4.keys()]
 
-    controller_4v4_timed = TimedCyclicSwitchController(list(range(8)), [1] * 8)
+    controller_4v4_timed = TimedCyclicSwitchController(list(range(8)), [10] * 8)
+
+    training_state = TrainingState.from_path(
+        str(Path('saved', 'aaai-multi', 'frap', '4v4', 'frap_2020-12-13.16-24-11-166272', 'states',
+             'ep_246_frap_2020-12-13.16-24-11-166272.tar')))
+    model_4v4 = training_state.model
+    model_4v4 = model_4v4.eval()
+
+    model_4v4_controller = ModelController(model_4v4)
 
     # metrics = evaluator.evaluate_traffic_controllers(
     #     [controller_rand, controllers_4v4_vehicle, controllers_4v4_pressure], render=False)
 
-    metrics = evaluator.evaluate_traffic_controllers([controller_4v4_timed], render=True)
+    metrics = evaluator.evaluate_traffic_controllers(
+        [model_4v4_controller, controller_4v4_timed, controllers_4v4_vehicle, controller_rand], render=True)
 
     for env_n in metrics[0].keys():
         print(env_n)

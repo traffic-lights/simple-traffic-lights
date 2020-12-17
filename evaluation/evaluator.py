@@ -109,9 +109,10 @@ class Evaluator:
         tf_writer.flush()
 
     def evaluate_to_tensorboard_async(self, traffic_controllers_dict, tf_writer, step, state_mean_std=None):
-        for proc, controller_names, step in self.async_executions:
+        for rec, proc, controller_names, step in self.async_executions:
             # this will wait until each process has finished and then collect the data
-            metrics = proc.recv()
+            metrics = rec.recv()
+            proc.join()
 
             self._write_metrics(tf_writer, controller_names, metrics, step)
 
@@ -129,4 +130,4 @@ class Evaluator:
         pid.start()
 
         # keeps track of process
-        self.async_executions.append((recv, controller_names, step))
+        self.async_executions.append((recv, pid, controller_names, step))
