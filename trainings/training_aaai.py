@@ -88,6 +88,20 @@ def get_frap_training():
 
 def get_frap_training_2v2():
     model_name = get_model_name('frap')
+    # training_param = TrainingParameters(
+    #     model_name,
+    #     pre_train_steps=1500,
+    #     tau=0.00005,
+    #     target_update_freq=1,
+    #     lr=0.0006,
+    #     save_freq=1500,
+    #     test_freq=1500,
+    #     memory_size=400000,
+    #     batch_size=512,
+    #     annealing_steps=70000,
+    #     disc_factor=0.95,
+    # )
+
     training_param = TrainingParameters(
         model_name,
         pre_train_steps=1500,
@@ -98,8 +112,9 @@ def get_frap_training_2v2():
         test_freq=1500,
         memory_size=400000,
         batch_size=512,
-        annealing_steps=70000,
+        annealing_steps=50000,
         disc_factor=0.95,
+        beta_annealing_steps=200000
     )
 
     memory = PrioritizedReplayBuffer(training_param.memory_size, training_param.prioritized_repay_alpha)

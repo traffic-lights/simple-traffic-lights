@@ -5,7 +5,7 @@
       "junctions": ["gneJ25", "gneJ26", "gneJ27", "gneJ28"],
       "traffic_movements": 36,
       "traffic_lights_phases": 8,
-      "light_duration": 1
+      "light_duration": 5
     }
   },
   "config_file": "2v2/2v2.sumocfg",
