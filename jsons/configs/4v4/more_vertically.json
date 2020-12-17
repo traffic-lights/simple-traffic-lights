@@ -6,7 +6,7 @@
         "gneJ14", "gneJ15", "gneJ16", "gneJ17", "gneJ20", "gneJ21", "gneJ22", "gneJ23"],
       "traffic_movements": 36,
       "traffic_lights_phases": 8,
-      "light_duration": 1
+      "light_duration": 5
     }
   },
   "config_file": "4v4/4v4.sumocfg",

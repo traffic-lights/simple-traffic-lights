@@ -20,8 +20,8 @@ from trainings.training_parameters import TrainingState
 def main():
     # evaluator = Evaluator.from_file("jsons/evaluators/example_test.json")
     # evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
-    evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
-    # evaluator = Evaluator.from_file('jsons/evaluators/4v4_eq_vert_hori.json')
+    # evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
+    evaluator = Evaluator.from_file('jsons/evaluators/4v4_eq_vert_hori.json')
     # evaluator = Evaluator.from_file('jsons/evaluators/example_test.json')
 
     osm_phase_map = {
@@ -87,10 +87,12 @@ def main():
     controllers_4v4_pressure = [VehicleNumberPressureController(tls_id, phase_map_4v4[tls_id]) for tls_id in
                                 phase_map_4v4.keys()]
 
+    controller_4v4_timed = TimedCyclicSwitchController(list(range(8)), [1] * 8)
+
     # metrics = evaluator.evaluate_traffic_controllers(
     #     [controller_rand, controllers_4v4_vehicle, controllers_4v4_pressure], render=False)
 
-    metrics = evaluator.evaluate_traffic_controllers([model_2v2_controller], render=True)
+    metrics = evaluator.evaluate_traffic_controllers([controller_4v4_timed], render=True)
 
     for env_n in metrics[0].keys():
         print(env_n)
