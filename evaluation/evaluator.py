@@ -49,7 +49,7 @@ class Evaluator:
         self.test_cases_list = test_cases_list
 
         self.environments = {
-            test_case['name']: SumoEnv.from_config_file(Path(PROJECT_ROOT, test_case['config']),max_steps=5000)
+            test_case['name']: SumoEnv.from_config_file(Path(PROJECT_ROOT, test_case['config']), max_steps=1500)
             for test_case in self.test_cases_list
         }
 
@@ -65,7 +65,7 @@ class Evaluator:
         metrics = [{} for _ in traffic_controllers]
 
         for env_name, env in self.environments.items():
-            with env.create_runner(render=True) as runner:
+            with env.create_runner(render=False) as runner:
                 for i_controller, controller in enumerate(traffic_controllers):
                     if not isinstance(controller, list):
                         controller = [controller]

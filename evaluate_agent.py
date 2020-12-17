@@ -17,9 +17,10 @@ from trainings.training_parameters import TrainingState
 
 
 def main():
-    #evaluator = Evaluator.from_file("jsons/evaluators/example_test.json")
-    #evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
-    evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
+    # evaluator = Evaluator.from_file("jsons/evaluators/example_test.json")
+    # evaluator = Evaluator.from_file("jsons/evaluators/osm_test.json")
+    # evaluator = Evaluator.from_file("jsons/evaluators/2v2_small_subset.json")
+    evaluator = Evaluator.from_file("jsons/evaluators/4v4_eq_vert_hori.json")
 
     osm_phase_map = {
         0: ["gneE8_0", "gneE8_1", "166869096#1_0", "166869096#1_1",
@@ -34,20 +35,24 @@ def main():
     phase_map = get_phase_map()
     controllers_2v2 = [VehicleNumberController(phase_map[tls_id]) for tls_id in phase_map.keys()]
 
-    controller2 = TimedCyclicSwitchController(list(range(8)), [5]*8)
+    controller2 = TimedCyclicSwitchController(list(range(8)), [5] * 8)
 
     controller_rand = RandomSwitchController(list(range(8)))
 
+    training_state = TrainingState.from_path(
+        Path('saved', 'aaai-multi', 'frap', '4v4', 'frap_2020-12-13.16-24-11-166272', 'states',
+             'ep_246_frap_2020-12-13.16-24-11-166272.tar'))
+    model_4v4 = training_state.model
+    model_4v4 = model_4v4.eval()
 
-    # training_state = TrainingState.from_path(
-    #     Path('saved', 'aaai-multi', 'frap', 'frap_2020-11-30.22-37-20-340261', 'states',
-    #          'ep_20_frap_2020-11-30.22-37-20-340261.tar'))
-    # model1 = training_state.model
-    # model1 = model1.eval()
-    #
-    # controller4 = ModelController(model1)
+    model_4v4_controller = ModelController(model_4v4)
 
-    metrics = evaluator.evaluate_traffic_controllers([controllers3, controller2])
+    phase_4v4 = get_phase_map_four_v_four()
+
+    vehicle_num_controller_4v4 = [VehicleNumberController(phase_4v4[tls_id]) for tls_id in phase_4v4.keys()]
+
+    metrics = evaluator.evaluate_traffic_controllers(
+        [controller_rand, vehicle_num_controller_4v4, model_4v4_controller])
 
     for env_n in metrics[0].keys():
         print(env_n)
@@ -57,4 +62,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
